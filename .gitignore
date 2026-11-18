@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Big / generated files (re-create with scripts/)
+data/raw/*
+data/processed/*
+models/*
+reports/figures/*
+!**/.gitkeep
+
+# Database
+*.db
+*.sqlite3
+
+# Editors / OS
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
