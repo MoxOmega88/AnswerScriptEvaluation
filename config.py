@@ -25,8 +25,9 @@ DNN_MODEL_PATH = MODELS_DIR / "score_dnn.keras"
 
 # ---------- Grading settings (tuned later on the CBSE dev split) ----------
 SUMMARIZE_MIN_WORDS = 80     # only summarise answers longer than this
-POINT_FULL_THRESHOLD = 0.60  # similarity >= this  -> full marks for the point
-POINT_HALF_THRESHOLD = 0.45  # similarity >= this  -> half marks for the point
+POINT_FULL_THRESHOLD = 0.55  # similarity >= this  -> full marks for the point
+POINT_HALF_THRESHOLD = 0.20 # similarity >= this  -> half marks for the point
+USE_KEYWORD_BACKUP = True  # point score = max(semantic similarity, keyword coverage)
 DISAGREEMENT_FLAG = 0.30     # |point-wise - DNN| (as fraction of max marks) -> flag
 
 RANDOM_SEED = 42
