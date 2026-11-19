@@ -34,6 +34,8 @@ def show(result, human: dict) -> None:
         hum = f"  human {human[q.label]:g}" if q.label in human else ""
         note = "" if q.counted else "  (not counted)"
         print(f"Q{q.label:<6} suggested {sug:<8}{extra}{hum}  [{q.method}]{note}")
+        if q.summary:
+            print(f"   summary: {q.summary[:110]}")
         for p in q.points:
             print(f"   {ICON[p.status]} {p.awarded:g}/{p.max_marks:g}  score {p.score:.2f} "
                   f"(sem {p.semantic:.2f}, kw {p.keyword:.2f})  {p.text[:55]}")

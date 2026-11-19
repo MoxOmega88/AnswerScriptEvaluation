@@ -1,0 +1,50 @@
+ID: E01.Q01.A00   human mark: 3.5/5
+ORIGINAL (36 words):
+High risk problems are address in the prototype program to make sure that the program is feasible. <STOP> A prototype may also be used to show a company that the software can be possibly programmed. <STOP>
+
+EXTRACTIVE (35 words):
+High risk problems are address in the prototype program to make sure that the program is feasible. <STOP> A prototype may also be used to show a company that the software can be possibly programmed.
+
+ABSTRACTIVE (22 words):
+High risk problems are address in the prototype program to make sure that the program is feasible . Prototype may also be
+----------------------------------------------------------------------
+ID: E01.Q01.A01   human mark: 5/5
+ORIGINAL (43 words):
+To simulate portions of the desired final product with a quick and easy program that does a small specific job. <STOP> It is a way to help see what the problem is and how you may solve it in the final project. <STOP>
+
+EXTRACTIVE (23 words):
+<STOP> It is a way to help see what the problem is and how you may solve it in the final project. <STOP>
+
+ABSTRACTIVE (28 words):
+To simulate portions of the desired final product with a quick and easy program that does a small specific job . It is a way to help see
+----------------------------------------------------------------------
+ID: E01.Q01.A03   human mark: 5/5
+ORIGINAL (42 words):
+Defined in the Specification phase a prototype stimulates the behavior of portions of the desired software product. <STOP> Meaning, the role of a prototype is a temporary solution until the program itself is refined to be used extensively in problem solving. <STOP>
+
+EXTRACTIVE (41 words):
+Defined in the Specification phase a prototype stimulates the behavior of portions of the desired software product. <STOP> Meaning, the role of a prototype is a temporary solution until the program itself is refined to be used extensively in problem solving.
+
+ABSTRACTIVE (26 words):
+A prototype stimulates the behavior of portions of the desired software product . The role of a prototype is a temporary solution until the program itself
+----------------------------------------------------------------------
+ID: E01.Q01.A04   human mark: 3/5
+ORIGINAL (40 words):
+It is used to let the users have a first idea of the completed program and allow the clients to evaluate the program. <STOP> This can generate much feedback including software specifications and project estimations of the total project. <STOP>
+
+EXTRACTIVE (39 words):
+It is used to let the users have a first idea of the completed program and allow the clients to evaluate the program. <STOP> This can generate much feedback including software specifications and project estimations of the total project.
+
+ABSTRACTIVE (24 words):
+It is used to let the users have a first idea of the completed program and allow the clients to evaluate the program .
+----------------------------------------------------------------------
+ID: E01.Q01.A06   human mark: 2.5/5
+ORIGINAL (35 words):
+To address major issues in the creation of the program. <STOP> There is no way to account for all possible bugs in the program, but it is possible to prove the program is tangible. <STOP>
+
+EXTRACTIVE (34 words):
+To address major issues in the creation of the program. <STOP> There is no way to account for all possible bugs in the program, but it is possible to prove the program is tangible.
+
+ABSTRACTIVE (21 words):
+There is no way to account for all possible bugs in the program, but it is possible to prove the program
+----------------------------------------------------------------------

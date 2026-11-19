@@ -50,6 +50,7 @@ class QuestionResult:
     baseline: float | None = None        # cosine-to-model-answer baseline
     similarity_to_model: float | None = None
     dnn_marks: float | None = None       # DNN second opinion
+    summary: str = ""                    # short gist of long answers, for the teacher
     points: list[PointResult] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
     counted: bool = True                 # False for the unused half of an OR pair
@@ -124,6 +125,11 @@ def grade_descriptive(q: Question, answer: str, full_th=None, half_th=None) -> Q
         res.similarity_to_model = round(float(va @ vm), 3)
         res.baseline = min(round_half(q.max_marks * max(res.similarity_to_model, 0.0)), q.max_marks)
         _add_dnn_opinion(res, q, answer, [s[0] for s in scores])
+
+        # Summary is only for the teacher's quick view - marking always uses the full answer
+    if config.SHOW_SUMMARIES and len(answer.split()) > config.SUMMARIZE_MIN_WORDS:
+        from src.summarizer import summarize
+        res.summary = summarize(answer)
 
     if len(answer.split()) < 5 and q.max_marks >= 2:
         res.flags.append("Very short answer.")

@@ -25,6 +25,7 @@ DNN_MODEL_PATH = MODELS_DIR / "score_dnn.keras"
 
 # ---------- Grading settings ----------
 SUMMARIZE_MIN_WORDS = 80     # only summarise answers longer than this
+SHOW_SUMMARIES = True        # add a short summary of long answers for the teacher (slower)
 
 # Thresholds used by the app / CBSE grading. Re-tune on your marked CBSE scripts later.
 POINT_FULL_THRESHOLD = 0.65  # point score >= this -> full marks for the point

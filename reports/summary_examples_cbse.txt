@@ -1,0 +1,50 @@
+ID: student_01_ananya.docx:1b   human mark: 2/2
+ORIGINAL (35 words):
+Photosynthesis is the process in which green plants prepare their own food. The chlorophyll in leaves traps sunlight and this energy is used to turn carbon dioxide and water into glucose. Oxygen is given out.
+
+EXTRACTIVE (31 words):
+Photosynthesis is the process in which green plants prepare their own food. The chlorophyll in leaves traps sunlight and this energy is used to turn carbon dioxide and water into glucose.
+
+ABSTRACTIVE (15 words):
+Photosynthesis is the process in which green plants prepare their own food . The chlorophy
+----------------------------------------------------------------------
+ID: student_01_ananya.docx:2   human mark: 3/3
+ORIGINAL (36 words):
+Ohm's law says that the electric current through a conductor is directly proportional to the potential difference across it if the temperature stays the same. So V = I x R. Resistance is measured in ohms.
+
+EXTRACTIVE (36 words):
+Ohm's law says that the electric current through a conductor is directly proportional to the potential difference across it if the temperature stays the same. So V = I x R. Resistance is measured in ohms.
+
+ABSTRACTIVE (15 words):
+Ohm's law says electric current through a conductor is directly proportional to potential difference across
+----------------------------------------------------------------------
+ID: student_01_ananya.docx:3   human mark: 3/3
+ORIGINAL (45 words):
+The ozone layer protects us because it absorbs the harmful UV rays coming from the sun. When ozone gets depleted, more UV rays reach the earth which can cause skin cancer and damage to plants and animals. CFCs are the main cause of ozone depletion.
+
+EXTRACTIVE (37 words):
+The ozone layer protects us because it absorbs the harmful UV rays coming from the sun. When ozone gets depleted, more UV rays reach the earth which can cause skin cancer and damage to plants and animals.
+
+ABSTRACTIVE (17 words):
+The ozone layer protects us because it absorbs the harmful UV rays coming from the sun .
+----------------------------------------------------------------------
+ID: student_01_ananya.docx:4   human mark: 5/5
+ORIGINAL (90 words):
+A food chain shows who eats whom in an ecosystem, and energy flows from one level to the next. For example grass is eaten by a deer and the deer is eaten by a lion. The 10 percent law says that only 10 percent of the energy is transferred to the next trophic level. The remaining 90 percent is lost as heat and used for the organism's own activities. Since the energy keeps decreasing, after three or four levels there is very little energy left, so food chains are short.
+
+EXTRACTIVE (59 words):
+A food chain shows who eats whom in an ecosystem, and energy flows from one level to the next. The 10 percent law says that only 10 percent of the energy is transferred to the next trophic level. Since the energy keeps decreasing, after three or four levels there is very little energy left, so food chains are short.
+
+ABSTRACTIVE (54 words):
+A food chain shows who eats whom in an ecosystem, and energy flows from one level to the next . The 10 percent law says that only 10 percent of the energy is transferred to next trophic level . The remaining 90 percent is lost as heat and used for the organism's own activities
+----------------------------------------------------------------------
+ID: student_02_rahul.docx:4-OR   human mark: 3/5
+ORIGINAL (22 words):
+Decomposers are bacteria and fungi. They break down dead plants and animals and make the soil rich. They keep the surroundings clean.
+
+EXTRACTIVE (17 words):
+Decomposers are bacteria and fungi. They break down dead plants and animals and make the soil rich.
+
+ABSTRACTIVE (14 words):
+Decomposers are bacteria and fungi that break down dead plants and animals . They
+----------------------------------------------------------------------

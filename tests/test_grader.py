@@ -30,7 +30,9 @@ def fake_embed(texts):
 @pytest.fixture(autouse=True)
 def use_fake_embedder(monkeypatch):
     import config
+    
     monkeypatch.setattr(config, "USE_DNN", False)   # tests must not depend on the trained model
+    monkeypatch.setattr(config, "SHOW_SUMMARIES", False)
     embedder.set_embedder(fake_embed)
     yield
     embedder.set_embedder(None)
@@ -147,3 +149,33 @@ def test_dnn_agreement_is_not_flagged(monkeypatch):
            "The relation is V = IR. The SI unit of resistance is the ohm.")
     r = grade_question(Q2, ans)
     assert r.dnn_marks == 3 and not any("Second opinion" in f for f in r.flags)
+
+
+
+# ---------- summaries ----------
+def test_long_answer_gets_summary_but_marks_use_full_text(monkeypatch):
+    import config
+    from src import summarizer
+    monkeypatch.setattr(config, "SHOW_SUMMARIES", True)
+    monkeypatch.setattr(summarizer, "summarize", lambda text: "SHORT SUMMARY")
+    filler = " Some extra words about electricity." * 20          # makes the answer > 80 words
+    ans = ("The current is directly proportional to the potential difference. "
+           "The relation is V = IR. The SI unit of resistance is the ohm." + filler)
+    r = grade_question(Q2, ans)
+    assert r.summary == "SHORT SUMMARY"
+    assert r.suggested == 3            # marks still come from the full answer
+
+
+def test_short_answer_has_no_summary(monkeypatch):
+    import config
+    monkeypatch.setattr(config, "SHOW_SUMMARIES", True)
+    r = grade_question(Q2, "V = IR.")
+    assert r.summary == ""
+
+
+def test_extractive_summary_keeps_student_sentences():
+    from src.summarizer import extractive_summary
+    text = "Ohm's law relates current and voltage. V = IR. Unit is ohm. I like cricket."
+    out = extractive_summary(text, ratio=0.5)
+    assert all(s in text for s in out.split(". ") if s)
+    assert len(out) < len(text)
