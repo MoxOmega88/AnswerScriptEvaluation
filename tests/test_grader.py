@@ -28,7 +28,9 @@ def fake_embed(texts):
 
 
 @pytest.fixture(autouse=True)
-def use_fake_embedder():
+def use_fake_embedder(monkeypatch):
+    import config
+    monkeypatch.setattr(config, "USE_DNN", False)   # tests must not depend on the trained model
     embedder.set_embedder(fake_embed)
     yield
     embedder.set_embedder(None)
@@ -122,3 +124,26 @@ def test_both_or_answered_counts_best():
     r = grade_script(make_schema(), script)
     counted = [q for q in r.questions if q.label.startswith("4") and q.counted]
     assert len(counted) == 1 and counted[0].label == "4-OR"
+
+
+
+# ---------- DNN second opinion ----------
+def test_dnn_disagreement_is_flagged(monkeypatch):
+    from src import dnn
+    monkeypatch.setattr(dnn, "is_available", lambda: True)
+    monkeypatch.setattr(dnn, "predict_norm", lambda rows: np.array([0.0]))  # DNN says 0 marks
+    ans = ("The current is directly proportional to the potential difference. "
+           "The relation is V = IR. The SI unit of resistance is the ohm.")
+    r = grade_question(Q2, ans)
+    assert r.suggested == 3 and r.dnn_marks == 0
+    assert any("Second opinion differs" in f for f in r.flags)
+
+
+def test_dnn_agreement_is_not_flagged(monkeypatch):
+    from src import dnn
+    monkeypatch.setattr(dnn, "is_available", lambda: True)
+    monkeypatch.setattr(dnn, "predict_norm", lambda rows: np.array([0.95]))
+    ans = ("The current is directly proportional to the potential difference. "
+           "The relation is V = IR. The SI unit of resistance is the ohm.")
+    r = grade_question(Q2, ans)
+    assert r.dnn_marks == 3 and not any("Second opinion" in f for f in r.flags)

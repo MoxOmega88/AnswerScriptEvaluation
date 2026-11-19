@@ -30,6 +30,7 @@ def show(result, human: dict) -> None:
     for q in result.questions:
         sug = "manual" if q.suggested is None else f"{q.suggested:g}/{q.max_marks:g}"
         extra = f"  baseline {q.baseline:g}" if q.baseline is not None else ""
+        extra += f"  dnn {q.dnn_marks:g}" if q.dnn_marks is not None else ""
         hum = f"  human {human[q.label]:g}" if q.label in human else ""
         note = "" if q.counted else "  (not counted)"
         print(f"Q{q.label:<6} suggested {sug:<8}{extra}{hum}  [{q.method}]{note}")

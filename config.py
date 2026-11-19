@@ -35,7 +35,8 @@ MOHLER_FULL_THRESHOLD = 0.55
 MOHLER_HALF_THRESHOLD = 0.20
 
 USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword coverage)
-DISAGREEMENT_FLAG = 0.30     # |point-wise - DNN| (as fraction of max marks) -> flag
+USE_DNN = True               # use the trained DNN as a second opinion (if models/score_dnn.keras exists)
+DISAGREEMENT_FLAG = 0.20     # |point-wise - DNN| (as fraction of max marks) -> flag
 
 
 RANDOM_SEED = 42

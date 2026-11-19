@@ -1,4 +1,4 @@
-"""Core grading (Phase 3).
+"""Core grading (Phases 3-4).
 
 For each answer:
   * mcq          -> exact match on the option letter (or the option text)
@@ -6,7 +6,8 @@ For each answer:
                     sentence (and pair of sentences) of the answer; the best match decides
                     full / half / zero marks for that point
   * manual       -> no suggestion, teacher marks it
-Also computed for comparison: a simple baseline = cosine(answer, model answer) x max marks.
+Also computed: a simple baseline = cosine(answer, model answer) x max marks, and a DNN
+second opinion that flags answers where it disagrees strongly with point-wise marking.
 
 The teacher always sees the evidence sentence for each point and has the final say.
 """
@@ -48,6 +49,7 @@ class QuestionResult:
     method: str                          # pointwise | mcq | manual | missing | empty
     baseline: float | None = None        # cosine-to-model-answer baseline
     similarity_to_model: float | None = None
+    dnn_marks: float | None = None       # DNN second opinion
     points: list[PointResult] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
     counted: bool = True                 # False for the unused half of an OR pair
@@ -113,19 +115,35 @@ def grade_descriptive(q: Question, answer: str, full_th=None, half_th=None) -> Q
         return res
 
     points = q.points or [MarkingPoint(q.model_answer, q.max_marks)]
-    res.points = apply_thresholds(points, point_scores(points, answer), full_th, half_th)
+    scores = point_scores(points, answer)
+    res.points = apply_thresholds(points, scores, full_th, half_th)
     res.suggested = min(round_half(sum(p.awarded for p in res.points)), q.max_marks)
 
     if q.model_answer:
         va, vm = embed([answer, q.model_answer])
         res.similarity_to_model = round(float(va @ vm), 3)
         res.baseline = min(round_half(q.max_marks * max(res.similarity_to_model, 0.0)), q.max_marks)
+        _add_dnn_opinion(res, q, answer, [s[0] for s in scores])
 
     if len(answer.split()) < 5 and q.max_marks >= 2:
         res.flags.append("Very short answer.")
     if res.points and max(p.score for p in res.points) < half_th:
         res.flags.append("No marking point matched - check if the answer is off-topic or worded unusually.")
     return res
+
+
+def _add_dnn_opinion(res: QuestionResult, q: Question, answer: str, scores: list[float]) -> None:
+    """Second opinion from the DNN; flag the answer if it disagrees strongly with point-wise."""
+    from src import dnn  # imported here to avoid a circular import and slow TensorFlow start-up
+    if not dnn.is_available():
+        return
+    from src.features import assemble_features
+
+    feats = assemble_features(answer, q.model_answer, scores, res.similarity_to_model)
+    res.dnn_marks = min(round_half(float(dnn.predict_norm([feats])[0]) * q.max_marks), q.max_marks)
+    if abs(res.suggested - res.dnn_marks) / q.max_marks >= config.DISAGREEMENT_FLAG - 1e-9:
+        res.flags.append(f"Second opinion differs (point-wise {res.suggested:g}, DNN {res.dnn_marks:g}) "
+                         "- check this answer carefully.")
 
 
 _OPTION_RE = re.compile(r"^\s*(?i:option\s*)?\(?\s*([a-dA-D])\s*[).]?(?=\s|$)")
@@ -200,6 +218,9 @@ def grade_script(schema: Schema, script: StudentScript, full_th=None, half_th=No
     manual = sum(r.max_marks for r in counted if r.suggested is None)
 
     flags = list(script.warnings)
+    n_flagged = sum(1 for r in counted if r.flags and r.method not in ("missing", "manual"))
+    if n_flagged:
+        flags.append(f"{n_flagged} answer(s) flagged for careful review.")
     if manual:
         flags.append(f"{manual:g} marks need manual marking.")
     return ScriptResult(script.file_name, script.name, script.roll_no, results,
