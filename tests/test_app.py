@@ -147,3 +147,33 @@ def test_delete(client):
     assert client.get(f"/api/submissions/{sub_id}").status_code == 404
     assert client.delete(f"/api/exams/{exam['id']}").status_code == 200
     assert client.get(f"/api/exams/{exam['id']}").status_code == 404
+
+
+
+# ---------------------------------------------------------------- HTML pages
+def test_pages_render(client):
+    assert "No exams yet" in client.get("/").text
+    exam = make_exam(client)
+    sub_id = upload(client, exam["id"], txt("rahul.txt", STUDENT_WEAK))["queued"][0]["id"]
+
+    home = client.get("/")
+    assert home.status_code == 200 and "Unit Test 1" in home.text
+
+    page = client.get(f"/exams/{exam['id']}")
+    assert page.status_code == 200 and "Rahul K" in page.text and "Upload and grade" in page.text
+
+    review = client.get(f"/submissions/{sub_id}")
+    assert review.status_code == 200
+    assert "Rahul K" in review.text and "Q4-OR" in review.text and "Save mark" in review.text
+
+    assert client.get("/static/style.css").status_code == 200
+    assert client.get("/submissions/9999").status_code == 404
+
+
+def test_highlight_segments():
+    from app.pages import highlight_segments
+    points = [{"status": "full", "evidence": "V = IR."}, {"status": "missed", "evidence": ""},
+              {"status": "half", "evidence": "V = IR. Unit is volt."}]
+    segs = highlight_segments("Ohm's law. V = IR. Unit is volt.", points)
+    assert [s["status"] for s in segs] == [None, "full", "half"]
+    assert segs[1]["points"] == [1, 3]

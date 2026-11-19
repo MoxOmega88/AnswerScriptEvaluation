@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Exams | Answer Script Evaluation{% endblock %}
+{% block content %}
+<section class="intro">
+  <h1>Your exams</h1>
+  <p class="lede">Upload an answer schema to set up an exam, then upload your students' answer scripts.
+  Every mark is a suggestion until you confirm it.</p>
+</section>
+
+<div class="two-col">
+  <section class="sheet">
+    <h2>New exam</h2>
+    <form id="new-exam-form" class="stack">
+      <label class="field">
+        <span>Answer schema (.docx, .pdf or .txt)</span>
+        <input type="file" name="file" accept=".docx,.pdf,.txt" required>
+      </label>
+      <label class="field">
+        <span>Exam title <em class="muted">(optional, taken from the schema if empty)</em></span>
+        <input type="text" name="title" placeholder="Class 10 Science, Unit Test 2">
+      </label>
+      <button class="btn btn-primary" type="submit">Create exam</button>
+      <p class="form-error" data-error hidden></p>
+    </form>
+    <details class="help">
+      <summary>How should the schema be written?</summary>
+      <p>Start each question with its number, marks and type, then the question, a model answer
+      and the marking points with their marks:</p>
+<pre>Q1b [2 marks] [type: descriptive]
+Question: What is photosynthesis?
+Model answer: Photosynthesis is the process ...
+Points:
+- Process by which green plants make their own food (1)
+- Uses sunlight, CO2 and water to make glucose and oxygen (1)
+
+Q1a [1 mark] [type: mcq]
+Question: ... (a) ... (b) ... (c) ... (d) ...
+Answer: (b)</pre>
+      <p>Use <code>Q4-OR</code> for an internal choice and <code>[type: manual]</code> for
+      questions you want to mark yourself, such as numericals or diagrams.</p>
+    </details>
+  </section>
+
+  <section class="exam-list">
+    {% if exams %}
+      {% for e in exams %}
+      <a class="exam-row" href="/exams/{{ e.id }}">
+        <span class="exam-title">{{ e.title }}</span>
+        <span class="exam-meta">{{ e.total_marks|marks }} marks, {{ e.n_submissions }} script{{ '' if e.n_submissions == 1 else 's' }}</span>
+        <span class="exam-progress">
+          {% if e.n_submissions %}
+            <span class="bar"><span style="width: {{ (100 * e.n_finalized / e.n_submissions)|round }}%"></span></span>
+            {{ e.n_finalized }} of {{ e.n_submissions }} finalised
+            {% if e.n_flagged_scripts %}<span class="chip chip-flag">{{ e.n_flagged_scripts }} to check</span>{% endif %}
+          {% else %}
+            No scripts yet
+          {% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty">
+        <p class="empty-title">No exams yet</p>
+        <p>Create one with the form. You can try it with <code>data/samples/sample_answer_schema.docx</code>.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

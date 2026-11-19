@@ -11,14 +11,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config  # noqa: E402
-from app import services  # noqa: E402
+from app import pages, services  # noqa: E402
 from app.db import get_db, init_db  # noqa: E402
 from app.models import AnswerEval, Exam, Submission  # noqa: E402
 
@@ -32,6 +33,8 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="AI Answer Script Evaluation", version="1.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+app.include_router(pages.router)   # HTML pages: /, /exams/{id}, /submissions/{id}
 
 
 def _get(db: Session, model, obj_id: int):
@@ -54,9 +57,7 @@ class AnswerUpdate(BaseModel):
     teacher_comment: str | None = None
 
 
-@app.get("/", include_in_schema=False)
-def home():
-    return RedirectResponse("/docs")
+
 
 
 # ---------------------------------------------------------------- exams

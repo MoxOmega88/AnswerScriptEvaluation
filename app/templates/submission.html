@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ sub.student_name or sub.file_name }} | {{ sub.exam_title }}{% endblock %}
+{% block content %}
+{% set locked = sub.status == 'finalized' %}
+<nav class="crumbs">
+  <a href="/exams/{{ sub.exam_id }}">{{ sub.exam_title }}</a>
+  <span class="crumb-pager">
+    {% if prev_id %}<a href="/submissions/{{ prev_id }}">Previous script</a>{% endif %}
+    <span class="muted">Script {{ position }} of {{ n_scripts }}</span>
+    {% if next_id %}<a href="/submissions/{{ next_id }}">Next script</a>{% endif %}
+  </span>
+</nav>
+
+<section class="student-head" data-sub="{{ sub.id }}">
+  <div>
+    <h1>{{ sub.student_name or 'Unnamed student' }}</h1>
+    <p class="muted">Roll no. {{ sub.roll_no or 'not found' }}, {{ sub.file_name }}</p>
+  </div>
+  <div class="totals">
+    <div class="total">
+      <span class="total-label">AI suggestion</span>
+      <span class="pencil big">{{ sub.total_suggested|marks }}</span>
+    </div>
+    <div class="total">
+      <span class="total-label">{{ 'Final' if locked else 'Your marks so far' }}</span>
+      <span class="ink big" data-final-total>{{ (sub.total_final if locked else final_so_far)|marks }}</span>
+    </div>
+    <div class="total">
+      <span class="total-label">Out of</span>
+      <span class="big plain">{{ sub.total_max|marks }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="review-bar">
+  {% if locked %}
+    <span class="chip chip-finalized">Finalised</span>
+    <span class="muted">Marks are locked. Reopen the script to change them.</span>
+    <button class="btn" data-action="reopen">Reopen script</button>
+  {% else %}
+    <span class="muted"><strong data-reviewed>{{ reviewed }}</strong> of {{ n_counted }} answers have a final mark.</span>
+    <button class="btn" data-action="accept-all">Accept remaining suggestions</button>
+    <button class="btn btn-primary" data-action="finalize">Finalise script</button>
+    <button class="btn btn-quiet" data-action="reevaluate">Grade again</button>
+  {% endif %}
+  <p class="form-error" data-error hidden></p>
+</section>
+
+{% if sub.warnings %}
+<div class="notice">
+  <ul>{% for w in sub.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% for a in sub.answers %}
+<article class="answer{% if not a.counted %} not-counted{% endif %}{% if a.flags and a.method not in ('missing',) %} flagged{% endif %}" id="q{{ a.label }}">
+  <div class="margin">
+    <span class="q-label">Q{{ a.label }}</span>
+    <span class="ink-mark{% if a.final_marks is none %} empty{% endif %}" data-ink="{{ a.id }}">{{ a.final_marks|marks if a.final_marks is not none else '' }}</span>
+    <span class="pencil small-mark" title="AI suggestion">{{ a.suggested|marks }}<span class="of">/{{ a.max_marks|marks }}</span></span>
+  </div>
+
+  <div class="sheet-body">
+    <p class="question">{{ a.question_text }}</p>
+    {% if not a.counted %}<p class="muted">Not counted: the student also answered the other option, which scored higher.</p>{% endif %}
+
+    {% if a.method == 'missing' %}
+      <p class="ruled missing-text">Not answered.</p>
+    {% else %}
+      <div class="ruled student-answer">
+        {%- for seg in a.segments -%}
+          {%- if seg.status -%}
+            <mark class="hl hl-{{ seg.status }}" title="Evidence for point {{ seg.points|join(', ') }}">{{ seg.text }}<sup>{{ seg.points|join(',') }}</sup></mark>
+          {%- else -%}
+            <span>{{ seg.text }}</span>
+          {%- endif %} {% endfor -%}
+      </div>
+      {% if a.summary %}<p class="summary"><span class="muted">Summary:</span> {{ a.summary }}</p>{% endif %}
+    {% endif %}
+
+    {% if a.flags and a.method != 'missing' %}
+    <ul class="flags">{% for f in a.flags %}<li>{{ f }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <aside class="side">
+    {% if a.points %}
+    <ol class="points">
+      {% for p in a.points %}
+      <li class="pt pt-{{ p.status }}">
+        <span class="pt-icon" aria-label="{{ p.status }}">{% if p.status == 'full' %}✓{% elif p.status == 'half' %}½{% else %}✗{% endif %}</span>
+        <span class="pt-text">{{ p.text }}</span>
+        <span class="pt-marks">{{ p.awarded|marks }}/{{ p.max_marks|marks }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% elif a.qtype == 'mcq' %}
+      <p class="muted">Multiple choice, checked against the answer key.</p>
+    {% elif a.qtype == 'manual' %}
+      <p class="muted">Marked by the teacher only.</p>
+    {% endif %}
+
+    {% if a.dnn_marks is not none or a.baseline is not none %}
+    <p class="second-opinion muted">
+      {% if a.dnn_marks is not none %}Second opinion (DNN): {{ a.dnn_marks|marks }}{% endif %}
+      {% if a.baseline is not none %}<br>Similarity to model answer: {{ (a.similarity * 100)|round|int }}%{% endif %}
+    </p>
+    {% endif %}
+
+    <form class="mark-form" data-answer="{{ a.id }}" data-suggested="{{ a.suggested if a.suggested is not none else '' }}">
+      <label class="field inline">
+        <span>Final mark</span>
+        <input type="number" name="final_marks" min="0" max="{{ a.max_marks }}" step="0.5"
+               value="{{ a.final_marks|marks if a.final_marks is not none else '' }}" {% if locked %}disabled{% endif %}>
+        <span class="muted">/ {{ a.max_marks|marks }}</span>
+      </label>
+      <label class="field">
+        <span>Comment for the student <em class="muted">(optional)</em></span>
+        <input type="text" name="teacher_comment" value="{{ a.teacher_comment }}" {% if locked %}disabled{% endif %}>
+      </label>
+      {% if not locked %}
+      <div class="row">
+        <button class="btn btn-primary btn-small" type="submit">Save mark</button>
+        {% if a.suggested is not none %}<button class="btn btn-small" type="button" data-use-suggestion>Use {{ a.suggested|marks }}</button>{% endif %}
+        <span class="saved muted" data-saved></span>
+      </div>
+      {% endif %}
+    </form>
+  </aside>
+</article>
+{% endfor %}
+
+<section class="review-bar bottom">
+  {% if next_id %}<a class="btn" href="/submissions/{{ next_id }}">Next script</a>{% endif %}
+  <a class="btn btn-quiet" href="/exams/{{ sub.exam_id }}">Back to all scripts</a>
+</section>
+{% endblock %}
