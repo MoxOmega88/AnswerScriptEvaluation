@@ -15,6 +15,7 @@ SAMPLES_DIR = DATA_DIR / "samples"
 MODELS_DIR = ROOT / "models"
 FIGURES_DIR = ROOT / "reports" / "figures"
 DB_PATH = ROOT / "answer_eval.db"
+UPLOAD_DIR = DATA_DIR / "uploads"        # schemas and student scripts uploaded through the app
 
 MOHLER_CSV = RAW_DIR / "mohler.csv"
 
@@ -39,9 +40,13 @@ USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword co
 USE_DNN = True               # use the trained DNN as a second opinion (if models/score_dnn.keras exists)
 DISAGREEMENT_FLAG = 0.20     # |point-wise - DNN| (as fraction of max marks) -> flag
 
+# ---------- Web app ----------
+MAX_UPLOAD_MB = 10           # largest file a teacher can upload
+WARMUP_MODELS = True         # load MiniLM / DNN when the server starts, so the first grading is fast
+
 
 RANDOM_SEED = 42
 
 # Make sure output folders exist whenever config is imported
-for _d in (RAW_DIR, PROCESSED_DIR, CBSE_DIR, SAMPLES_DIR, MODELS_DIR, FIGURES_DIR):
+for _d in (RAW_DIR, PROCESSED_DIR, CBSE_DIR, SAMPLES_DIR, MODELS_DIR, FIGURES_DIR, UPLOAD_DIR):
     _d.mkdir(parents=True, exist_ok=True)

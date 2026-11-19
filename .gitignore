@@ -23,3 +23,8 @@ reports/figures/*
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
+
+# App uploads and SQLite extra files
+data/uploads/*
+*.db-wal
+*.db-shm
