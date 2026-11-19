@@ -64,7 +64,7 @@ def main(csv_path: Path, limit: int | None) -> None:
     for r in df.itertuples():
         points = points_from_model_answer(r.instructor_answer, 5.0)
         scores = point_scores(points, r.student_answer)
-        pw = apply_thresholds(points, scores, config.POINT_FULL_THRESHOLD, config.POINT_HALF_THRESHOLD)
+        pw = apply_thresholds(points, scores, config.MOHLER_FULL_THRESHOLD, config.MOHLER_HALF_THRESHOLD)
         feats = compute_features(r.student_answer, r.instructor_answer, points)
         rows.append({**feats,
                      "pointwise": min(round_half(sum(p.awarded for p in pw)), 5.0),
@@ -87,7 +87,7 @@ def main(csv_path: Path, limit: int | None) -> None:
     }
 
     print(f"=== Mohler test split ({len(test)} answers, {test['question'].nunique()} unseen questions) ===")
-    print(f"thresholds: full >= {config.POINT_FULL_THRESHOLD}, half >= {config.POINT_HALF_THRESHOLD}, "
+    print(f"thresholds: full >= {config.MOHLER_FULL_THRESHOLD}, half >= {config.MOHLER_HALF_THRESHOLD}, "
           f"keyword backup = {config.USE_KEYWORD_BACKUP}")
     out = []
     for name, p in preds.items():

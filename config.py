@@ -23,12 +23,20 @@ EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 SUMMARIZER_MODEL = "sshleifer/distilbart-cnn-12-6"
 DNN_MODEL_PATH = MODELS_DIR / "score_dnn.keras"
 
-# ---------- Grading settings (tuned later on the CBSE dev split) ----------
+# ---------- Grading settings ----------
 SUMMARIZE_MIN_WORDS = 80     # only summarise answers longer than this
-POINT_FULL_THRESHOLD = 0.55  # similarity >= this  -> full marks for the point
-POINT_HALF_THRESHOLD = 0.20 # similarity >= this  -> half marks for the point
-USE_KEYWORD_BACKUP = True  # point score = max(semantic similarity, keyword coverage)
+
+# Thresholds used by the app / CBSE grading. Re-tune on your marked CBSE scripts later.
+POINT_FULL_THRESHOLD = 0.65  # point score >= this -> full marks for the point
+POINT_HALF_THRESHOLD = 0.50  # point score >= this -> half marks for the point
+
+# Thresholds used only for the Mohler experiments (tuned on Mohler's train split).
+MOHLER_FULL_THRESHOLD = 0.55
+MOHLER_HALF_THRESHOLD = 0.20
+
+USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword coverage)
 DISAGREEMENT_FLAG = 0.30     # |point-wise - DNN| (as fraction of max marks) -> flag
+
 
 RANDOM_SEED = 42
 

@@ -41,7 +41,11 @@ def test_round_half():
 def test_keyword_coverage_uses_stems():
     assert keyword_coverage("SI unit of resistance is ohm", "Resistance is measured in ohms") == 0.5
 
-
+def test_formula_normalisation():
+    from src.text_utils import normalise_formulas
+    assert keyword_coverage("Relation V = IR", "So V = I x R.") == keyword_coverage("Relation V = IR", "V = IR")
+    assert keyword_coverage("Relation V = IR", "V = I × R") > 0.6
+    assert normalise_formulas("e.g. a") == "e.g. a"   # normal text is left alone
 # ---------- MCQ ----------
 MCQ = Question("1a", 1, "mcq", text="Gas released? (a) Carbon dioxide (b) Oxygen (c) Nitrogen (d) Hydrogen",
                answer_key="(b)")

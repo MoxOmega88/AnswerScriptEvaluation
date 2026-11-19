@@ -98,13 +98,16 @@ if __name__ == "__main__":
             results.append((mae_for(items, full_th, half_th), round(full_th, 2), round(half_th, 2)))
     results.sort()
 
-    cur = mae_for(items, config.POINT_FULL_THRESHOLD, config.POINT_HALF_THRESHOLD)
-    print(f"\nCurrent config  full={config.POINT_FULL_THRESHOLD}  half={config.POINT_HALF_THRESHOLD}  ->  MAE {cur:.3f}")
+    prefix = "POINT" if args.marks else "MOHLER"
+    cur_full = getattr(config, f"{prefix}_FULL_THRESHOLD")
+    cur_half = getattr(config, f"{prefix}_HALF_THRESHOLD")
+    cur = mae_for(items, cur_full, cur_half)
+    print(f"\nCurrent config  full={cur_full}  half={cur_half}  ->  MAE {cur:.3f}")
     print("Best 5:")
     for mae, f, h in results[:5]:
         print(f"  full={f:.2f}  half={h:.2f}  ->  MAE {mae:.3f}")
     best = results[0]
     print(f"\nTo use the best values, set in config.py:\n"
-          f"  POINT_FULL_THRESHOLD = {best[1]:.2f}\n  POINT_HALF_THRESHOLD = {best[2]:.2f}")
+          f"  {prefix}_FULL_THRESHOLD = {best[1]:.2f}\n  {prefix}_HALF_THRESHOLD = {best[2]:.2f}")
     if len(items) < 40:
         print("(Few items - treat these as rough. More marked scripts give more reliable thresholds.)")

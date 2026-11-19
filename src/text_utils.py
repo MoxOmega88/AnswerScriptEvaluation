@@ -14,6 +14,15 @@ any each every all both other into over under about after before up down out not
 """.split())
 
 _token_re = re.compile(r"[a-z0-9]+")
+# "I x R", "I × R", "I*R", "I·R"  ->  "IR"   (so "V = I x R" matches "V = IR")
+_FORMULA_PRODUCT_RE = re.compile(r"\b([A-Za-z])\s*[x×*·]\s*(?=[A-Za-z]\b)")
+
+
+def normalise_formulas(text: str) -> str:
+    prev = None
+    while prev != text:
+        prev, text = text, _FORMULA_PRODUCT_RE.sub(r"\1", text)
+    return text
 
 
 @lru_cache(maxsize=1)
@@ -50,8 +59,8 @@ def candidate_spans(text: str) -> list[str]:
 @lru_cache(maxsize=50_000)
 def keywords(text: str) -> frozenset[str]:
     stem = _stemmer().stem
-    return frozenset(stem(t) for t in _token_re.findall(text.lower()) if t not in STOPWORDS)
-
+    tokens = _token_re.findall(normalise_formulas(text).lower())
+    return frozenset(stem(t) for t in tokens if t not in STOPWORDS)
 
 def keyword_coverage(reference: str, candidate: str) -> float:
     """Fraction of the reference's keywords (stemmed) that appear in the candidate."""
