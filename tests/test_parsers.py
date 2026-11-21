@@ -136,3 +136,22 @@ def test_both_or_answered_warns(tmp_path, schema):
 def test_no_answers_warns(tmp_path, schema):
     s = script_from(tmp_path, "I did not label anything.", schema)
     assert s.answers == {} and s.warnings
+
+
+
+# ---------- PDF headers / footers ----------
+def test_headers_footers_and_page_numbers_removed():
+    from src.doc_reader import remove_headers_footers
+    pages = [["Science - Luffy", "Name: Luffy", "Q1. Plants make food.", "more text", "Science - Luffy 1"],
+             ["Q2. V = IR.", "unit is ohm", "Page 2 of 2", "Science - Luffy 2"]]
+    out = remove_headers_footers(pages)
+    assert "Science - Luffy 1" not in out and "Science - Luffy 2" not in out
+    assert "Page 2 of 2" not in out
+    assert "Q1. Plants make food." in out and "Q2. V = IR." in out and "unit is ohm" in out
+
+
+def test_question_labels_are_never_removed():
+    from src.doc_reader import remove_headers_footers
+    pages = [["Q3.", "answer three", "end"], ["Q4.", "answer four", "end"]]
+    out = remove_headers_footers(pages)
+    assert "Q3." in out and "Q4." in out

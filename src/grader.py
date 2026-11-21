@@ -193,6 +193,20 @@ def grade_question(q: Question, answer: str, full_th=None, half_th=None) -> Ques
 
 
 # ---------------------------------------------------------------- whole script
+
+def _matching_alternative(schema: Schema, group: list[str], label: str, answer: str) -> str | None:
+    """If an answer labelled e.g. '4' is clearly closer in meaning to the '4-OR' question,
+    return '4-OR'. Compares the answer with each option's model answer (or question text)."""
+    options = [lab for lab in group if schema.questions[lab].qtype == "descriptive"]
+    if label not in options or len(options) < 2 or not answer.strip():
+        return None
+    refs = [schema.questions[lab].model_answer or schema.questions[lab].text for lab in options]
+    vecs = embed([answer] + refs)
+    sims = dict(zip(options, vecs[1:] @ vecs[0]))
+    best = max(sims, key=sims.get)
+    if best != label and sims[best] - sims[label] >= config.OR_SWITCH_MARGIN:
+        return best
+    return None
 def grade_script(schema: Schema, script: StudentScript, full_th=None, half_th=None) -> ScriptResult:
     results: list[QuestionResult] = []
     done = set()
@@ -212,6 +226,16 @@ def grade_script(schema: Schema, script: StudentScript, full_th=None, half_th=No
 
         graded = [grade_question(schema.questions[lab], script.answers[lab], full_th, half_th)
                   for lab in answered]
+        if len(group) > 1 and len(answered) == 1:
+            # Only one option of an OR pair answered: check it was written under the right number
+            lab = answered[0]
+            better = _matching_alternative(schema, group, lab, script.answers[lab])
+            if better:
+                r = grade_question(schema.questions[better], script.answers[lab], full_th, half_th)
+                r.flags.append(f"Labelled Q{lab}, but the answer matches Q{better}, so it was graded "
+                               f"as Q{better}. Please confirm.")
+                results.append(r)
+                continue
         if len(graded) > 1:  # both halves of an OR pair answered: count the better one
             best = max(graded, key=lambda r: r.suggested or 0)
             for r in graded:

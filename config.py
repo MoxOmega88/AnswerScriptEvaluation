@@ -37,6 +37,7 @@ MOHLER_FULL_THRESHOLD = 0.55
 MOHLER_HALF_THRESHOLD = 0.20
 
 USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword coverage)
+OR_SWITCH_MARGIN = 0.15     # answer labelled "Q4" but clearly about Q4-OR -> grade it as Q4-OR
 USE_DNN = True               # use the trained DNN as a second opinion (if models/score_dnn.keras exists)
 DISAGREEMENT_FLAG = 0.20     # |point-wise - DNN| (as fraction of max marks) -> flag
 # ---------- Feedback (Phase 7, optional) ----------

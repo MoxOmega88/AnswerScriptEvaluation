@@ -179,3 +179,20 @@ def test_extractive_summary_keeps_student_sentences():
     out = extractive_summary(text, ratio=0.5)
     assert all(s in text for s in out.split(". ") if s)
     assert len(out) < len(text)
+
+
+
+# ---------- OR answer written under the wrong number ----------
+def test_or_answer_with_wrong_label_is_regraded():
+    script = StudentScript("s.docx", answers={"4": "Decomposers break down dead matter."})
+    r = grade_script(make_schema(), script)
+    by_label = {q.label: q for q in r.questions}
+    assert "4-OR" in by_label and "4" not in by_label
+    assert by_label["4-OR"].suggested == 2
+    assert any("matches Q4-OR" in f for f in by_label["4-OR"].flags)
+
+
+def test_correct_label_is_not_switched():
+    script = StudentScript("s.docx", answers={"4": "A food chain transfers energy."})
+    r = grade_script(make_schema(), script)
+    assert "4" in {q.label for q in r.questions}
