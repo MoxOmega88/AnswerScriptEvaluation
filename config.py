@@ -39,6 +39,8 @@ MOHLER_HALF_THRESHOLD = 0.20
 USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword coverage)
 USE_DNN = True               # use the trained DNN as a second opinion (if models/score_dnn.keras exists)
 DISAGREEMENT_FLAG = 0.20     # |point-wise - DNN| (as fraction of max marks) -> flag
+# ---------- Feedback (Phase 7, optional) ----------
+FEEDBACK_MODEL = "command-a-03-2025"   # Cohere chat model used through LangChain
 
 # ---------- Web app ----------
 MAX_UPLOAD_MB = 10           # largest file a teacher can upload

@@ -119,9 +119,14 @@ if (head) {
   document.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => withBusy(btn, async () => {
       const action = btn.dataset.action;
-      showError(bar, "");
+            showError(bar, "");
+      if (action === "feedback") toast("Writing feedback, this takes a few seconds per answer...");
       try {
-        await api("POST", `/api/submissions/${subId}/${action}`);
+        const res = await api("POST", `/api/submissions/${subId}/${action}`);
+        if (action === "feedback" && res.failed.length) {
+          showError(bar, `Feedback written for ${res.written} answers. Could not write: ${res.failed.join(", ")}.`);
+          return;
+        }
         if (action === "reevaluate") {
           toast("Grading again...");
           setTimeout(() => (window.location.href = document.querySelector(".crumbs a").href), 800);
@@ -137,7 +142,7 @@ if (head) {
   // Per-answer mark forms
   document.querySelectorAll(".mark-form").forEach((form) => {
     const input = form.querySelector("input[name=final_marks]");
-    const comment = form.querySelector("input[name=teacher_comment]");
+    const comment = form.querySelector("[name=teacher_comment]")
     const saved = form.querySelector("[data-saved]");
     const useBtn = form.querySelector("[data-use-suggestion]");
 
@@ -162,7 +167,7 @@ if (head) {
 
     form.addEventListener("submit", (e) => { e.preventDefault(); save(); });
     if (useBtn) useBtn.addEventListener("click", () => { input.value = form.dataset.suggested; save(); });
-    input.addEventListener("input", () => { if (saved) saved.textContent = ""; });
+    [input, comment].forEach((el) => el.addEventListener("input", () => { if (saved) saved.textContent = ""; }));
   });
 
   function updateTotals() {

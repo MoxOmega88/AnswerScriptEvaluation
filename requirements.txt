@@ -35,3 +35,7 @@ sqlalchemy>=2.0
 c:\Users\mohit\Downloads\answer-eval-phase2-files\answer-eval\scripts\parse_demo.py
 
 httpx>=0.27                     # needed by FastAPI's TestClient (tests)
+
+# ---- LLM feedback (Phase 7, optional - the app works without an API key) ----
+langchain-core>=0.3
+langchain-cohere>=0.4

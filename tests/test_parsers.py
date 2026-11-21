@@ -26,6 +26,8 @@ from src.script_parser import parse_script  # noqa: E402
     ("Q4 (or) text", "4-OR"),
     ("Q5(ii) text", "5ii"),
     ("3 (A) text", "3a"),
+    ("1 a) a", "1a"),
+    ("Q1 a. (b) Oxygen", "1a"),
 ])
 def test_labels_detected(line, expected):
     assert parse_label(line)[0] == expected

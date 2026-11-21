@@ -1,7 +1,7 @@
 """Detect and normalise question labels at the start of a line.
 
 Students write the same label in many ways. All of these become the same key:
-    "Q1 (a)", "Q1(a)", "1.a)", "1a.", "1 (a)", "Question 1a"  ->  "1a"
+    "Q1 (a)", "Q1(a)", "1.a)", "1a.", "1 (a)", "1 a)", "Question 1a"  ->  "1a"
     "Q4-OR", "4 OR", "4 (OR)", "Q4(or)"                          ->  "4-OR"
     "2)", "Q2.", "Ans 2:", "Q3)"                                 ->  "2" / "3"
 Sub-parts can be letters (a-h) or roman numerals (i-x).
@@ -24,6 +24,7 @@ _LABEL_RE = re.compile(
         (?P<sub_attached>{_SUB})(?![A-Za-z])         # 1a  (letter stuck to number)
       | \s*[.)\:]?\s*[(\[]\s*(?P<sub_paren>{_SUB})\s*[)\]]   # 1 (a) / 1.(a) / 1[a]
       | \s*[.]\s*(?P<sub_dot>{_SUB})\s*[.)\:]     # 1.a)  / 1.a.
+      | \s+(?P<sub_space>{_SUB})\s*[.)\:]        # 1 a)  / Q1 a.
     )?
     (?P<delim>\s*[.)\:](?!\d))?                   # 1.  1)  1:   (but not 1.5 or 2:1)
     \s*(?P<or>-?\s*{_OR})?                        # OR / (OR) / -OR
@@ -39,7 +40,7 @@ def parse_label(line: str) -> tuple[str, str] | None:
     if not m:
         return None
 
-    sub = (m["sub_attached"] or m["sub_paren"] or m["sub_dot"] or "").lower()
+    sub = (m["sub_attached"] or m["sub_paren"] or m["sub_dot"] or m["sub_space"] or "").lower()
     has_or = bool(m["or"])
 
     # Without a Q/Ans prefix we need some sign that this is really a label

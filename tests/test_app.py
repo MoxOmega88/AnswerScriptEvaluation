@@ -177,3 +177,41 @@ def test_highlight_segments():
     segs = highlight_segments("Ohm's law. V = IR. Unit is volt.", points)
     assert [s["status"] for s in segs] == [None, "full", "half"]
     assert segs[1]["points"] == [1, 3]
+
+
+
+# ---------------------------------------------------------------- feedback (Phase 7)
+def test_template_feedback_filled_when_graded(client):
+    exam = make_exam(client)
+    sub_id = upload(client, exam["id"], txt("rahul.txt", STUDENT_WEAK))["queued"][0]["id"]
+    answers = {a["label"]: a for a in client.get(f"/api/submissions/{sub_id}").json()["answers"]}
+    assert answers["3"]["teacher_comment"] == "This question was not answered."
+    assert answers["1a"]["teacher_comment"] == "The option chosen is not correct."
+
+
+def test_ai_feedback(client, monkeypatch):
+    from src import feedback
+    exam = make_exam(client)
+    sub_id = upload(client, exam["id"], txt("rahul.txt", STUDENT_WEAK))["queued"][0]["id"]
+
+    monkeypatch.setattr(feedback, "llm_available", lambda: False)
+    r = client.post(f"/api/submissions/{sub_id}/feedback")
+    assert r.status_code == 400 and "COHERE_API_KEY" in r.json()["detail"]
+
+    # teacher writes their own feedback on Q2 - it must be kept
+    answers = {a["label"]: a for a in client.get(f"/api/submissions/{sub_id}").json()["answers"]}
+    client.patch(f"/api/answers/{answers['2']['id']}", json={"teacher_comment": "See me after class."})
+
+    monkeypatch.setattr(feedback, "llm_available", lambda: True)
+    monkeypatch.setattr(feedback, "llm_feedback", lambda question, answer, points: "AI FEEDBACK")
+    r = client.post(f"/api/submissions/{sub_id}/feedback")
+    assert r.status_code == 200, r.text
+
+    answers = {a["label"]: a for a in client.get(f"/api/submissions/{sub_id}").json()["answers"]}
+    assert answers["2"]["teacher_comment"] == "See me after class."
+    written = [a for a in answers.values() if a["teacher_comment"] == "AI FEEDBACK"]
+    assert len(written) == r.json()["written"]
+
+    csv_text = client.get(f"/api/exams/{exam['id']}/feedback.csv").text
+    assert csv_text.startswith("roll_no,name,question,marks,max_marks,feedback,status")
+    assert "See me after class." in csv_text

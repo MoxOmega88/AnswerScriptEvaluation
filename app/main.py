@@ -95,6 +95,13 @@ def export_exam(exam_id: int, db: Session = Depends(get_db)):
     return Response(services.export_csv(exam), media_type="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="exam_{exam_id}_marks.csv"'})
 
+@app.get("/api/exams/{exam_id}/feedback.csv", tags=["exams"])
+def export_feedback(exam_id: int, db: Session = Depends(get_db)):
+    exam = _get(db, Exam, exam_id)
+    return Response(services.export_feedback_csv(exam), media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="exam_{exam_id}_feedback.csv"'})
+
+
 
 # ---------------------------------------------------------------- submissions
 @app.post("/api/exams/{exam_id}/submissions", tags=["submissions"])
@@ -136,6 +143,12 @@ def accept_all(sub_id: int, db: Session = Depends(get_db)):
     sub = _get(db, Submission, sub_id)
     n = _run(services.accept_all_suggestions, db, sub)
     return {"accepted": n, **services.submission_detail(sub)}
+
+@app.post("/api/submissions/{sub_id}/feedback", tags=["review"])
+def write_feedback(sub_id: int, overwrite: bool = False, db: Session = Depends(get_db)):
+    """Write student feedback with the LLM (LangChain + Cohere). Needs COHERE_API_KEY in .env."""
+    sub = _get(db, Submission, sub_id)
+    return _run(services.generate_feedback, db, sub, overwrite)
 
 
 @app.post("/api/submissions/{sub_id}/finalize", tags=["review"])

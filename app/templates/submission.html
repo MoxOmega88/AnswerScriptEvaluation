@@ -40,6 +40,7 @@
   {% else %}
     <span class="muted"><strong data-reviewed>{{ reviewed }}</strong> of {{ n_counted }} answers have a final mark.</span>
     <button class="btn" data-action="accept-all">Accept remaining suggestions</button>
+    <button class="btn" data-action="feedback" title="Uses the Cohere API through LangChain">Write feedback with AI</button>
     <button class="btn btn-primary" data-action="finalize">Finalise script</button>
     <button class="btn btn-quiet" data-action="reevaluate">Grade again</button>
   {% endif %}
@@ -115,8 +116,8 @@
         <span class="muted">/ {{ a.max_marks|marks }}</span>
       </label>
       <label class="field">
-        <span>Comment for the student <em class="muted">(optional)</em></span>
-        <input type="text" name="teacher_comment" value="{{ a.teacher_comment }}" {% if locked %}disabled{% endif %}>
+        <span>Feedback for the student <em class="muted">(drafted automatically, edit as needed)</em></span>
+        <textarea name="teacher_comment" rows="5" {% if locked %}disabled{% endif %}>{{ a.teacher_comment }}</textarea>
       </label>
       {% if not locked %}
       <div class="row">

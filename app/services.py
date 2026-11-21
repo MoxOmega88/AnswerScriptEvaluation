@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config  # noqa: E402
 from app import db as dbmod  # noqa: E402
 from app.models import AnswerEval, Exam, Submission  # noqa: E402
+from src import feedback as fb  # noqa: E402
 from src.doc_reader import SUPPORTED  # noqa: E402
 from src.grader import grade_script  # noqa: E402
 from src.schema_parser import MarkingPoint, Question, Schema, parse_schema  # noqa: E402
@@ -159,7 +160,8 @@ def evaluate_one(sub_id: int) -> None:
                            answer_text=q.answer, summary=q.summary, method=q.method,
                            suggested=q.suggested, baseline=q.baseline, dnn_marks=q.dnn_marks,
                            similarity=q.similarity_to_model, counted=q.counted,
-                           points=[asdict(p) for p in q.points], flags=list(q.flags))
+                           points=[asdict(p) for p in q.points], flags=list(q.flags),
+                           teacher_comment=fb.template_feedback(q.method, q.points, q.suggested, q.max_marks))
                 for i, q in enumerate(result.questions)
             ]
             sub.warnings = warnings
@@ -223,6 +225,30 @@ def set_final_marks(db: Session, answer: AnswerEval, *, update_marks: bool, fina
     db.commit()
     return answer
 
+def generate_feedback(db: Session, sub: Submission, overwrite: bool = False) -> dict:
+    """Ask the LLM to write feedback for each descriptive answer that lost marks.
+    Feedback the teacher wrote themselves is kept unless overwrite=True."""
+    if sub.status != "evaluated":
+        raise ServiceError(f"Script is '{sub.status}'. Feedback can only be written before finalising.")
+    if not fb.llm_available():
+        raise ServiceError("No Cohere API key found. Add COHERE_API_KEY=... to the .env file "
+                           "in the project folder and restart the server.")
+    questions = {q["label"]: q for q in sub.exam.schema_json["questions"]}
+    written, kept, failed = 0, 0, []
+    for a in sub.answers:
+        if not a.counted or a.method != "pointwise" or all(p["status"] == "full" for p in a.points):
+            continue
+        auto = fb.template_feedback(a.method, a.points, a.suggested, a.max_marks)
+        if a.teacher_comment not in ("", auto) and not overwrite:
+            kept += 1                       # teacher already wrote their own feedback
+            continue
+        try:
+            a.teacher_comment = fb.llm_feedback(questions[a.label]["text"], a.answer_text, a.points)
+            written += 1
+        except Exception as err:            # keep the template feedback if the API call fails
+            failed.append(f"Q{a.label}: {type(err).__name__}")
+    db.commit()
+    return {"written": written, "kept": kept, "failed": failed}
 
 def accept_all_suggestions(db: Session, sub: Submission) -> int:
     """Copy every AI suggestion into final marks where the teacher hasn't set one yet."""
@@ -295,6 +321,20 @@ def export_csv(exam: Exam) -> str:
                     "" if total is None else f"{total:g}",
                     "" if s.total_max is None else f"{s.total_max:g}",
                     "final" if final else "AI suggestion (not reviewed)"])
+    return buf.getvalue()
+
+def export_feedback_csv(exam: Exam) -> str:
+    """One row per student per question, with the mark and the feedback text."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["roll_no", "name", "question", "marks", "max_marks", "feedback", "status"])
+    for s in sorted(exam.submissions, key=lambda s: (s.roll_no or "~", s.id)):
+        for a in s.answers:
+            if not a.counted:
+                continue
+            mark = a.final_marks if a.final_marks is not None else a.suggested
+            w.writerow([s.roll_no, s.student_name, f"Q{a.label}", "" if mark is None else f"{mark:g}",
+                        f"{a.max_marks:g}", a.teacher_comment, s.status])
     return buf.getvalue()
 
 
