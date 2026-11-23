@@ -15,7 +15,7 @@ import config  # noqa: E402
 def nltk_data() -> None:
     import nltk
 
-    print("[1/3] NLTK sentence tokenizer ...")
+    print("[1/4] NLTK sentence tokenizer ...")
     for pkg in ("punkt", "punkt_tab"):
         nltk.download(pkg, quiet=True)
     from nltk.tokenize import sent_tokenize
@@ -26,7 +26,7 @@ def nltk_data() -> None:
 def embedder() -> None:
     from sentence_transformers import SentenceTransformer, util
 
-    print(f"[2/3] Embedding model: {config.EMBED_MODEL} ...")
+    print(f"[2/4] Embedding model: {config.EMBED_MODEL} ...")
     t = time.time()
     model = SentenceTransformer(config.EMBED_MODEL)
     a, b, c = model.encode(
@@ -45,7 +45,7 @@ def embedder() -> None:
 def summarizer() -> None:
     from src.summarizer import summarize
 
-    print(f"[3/3] Summarizer: {config.SUMMARIZER_MODEL} (largest download) ...")
+    print(f"[3/4] Summarizer: {config.SUMMARIZER_MODEL} (largest download) ...")
     t = time.time()
     text = (
         "Photosynthesis is the process by which green plants prepare their own food. "
@@ -61,8 +61,22 @@ def summarizer() -> None:
     print(f"       summary: {out}")
 
 
+def nli_model() -> None:
+    from src.nli import contradiction_probs
+
+    print(f"[4/4] NLI contradiction model: {config.NLI_MODEL} ...")
+    t = time.time()
+    prob = contradiction_probs([(
+        "The current is inversely proportional to the potential difference.",
+        "Current is directly proportional to potential difference",
+    )])[0]
+    print(f"       loaded + ran in {time.time() - t:.1f}s")
+    print(f"       'inversely' vs 'directly' -> P(contradiction) {prob:.3f}  (should be high)")
+
+
 if __name__ == "__main__":
     nltk_data()
     embedder()
     summarizer()
+    nli_model()
     print("All models ready.")

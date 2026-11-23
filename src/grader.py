@@ -37,6 +37,7 @@ class PointResult:
     status: str           # "full" | "half" | "missed"
     awarded: float
     evidence: str         # the student's sentence(s) that matched best
+    contradiction: float = 0.0   # NLI probability that the evidence contradicts the point
 
 
 @dataclass
@@ -119,6 +120,8 @@ def grade_descriptive(q: Question, answer: str, full_th=None, half_th=None) -> Q
     scores = point_scores(points, answer)
     res.points = apply_thresholds(points, scores, full_th, half_th)
     res.suggested = min(round_half(sum(p.awarded for p in res.points)), q.max_marks)
+    if config.USE_NLI:
+        _check_contradictions(res)
 
     if q.model_answer:
         va, vm = embed([answer, q.model_answer])
@@ -136,6 +139,24 @@ def grade_descriptive(q: Question, answer: str, full_th=None, half_th=None) -> Q
     if res.points and max(p.score for p in res.points) < half_th:
         res.flags.append("No marking point matched - check if the answer is off-topic or worded unusually.")
     return res
+
+
+def _check_contradictions(res: QuestionResult) -> None:
+    """Take away a matched point if the student's evidence contradicts it (NLI), and flag it.
+    Catches answers with the right words but the wrong fact, e.g. 'inversely' for 'directly'."""
+    from src.nli import contradiction_probs
+
+    matched = [(n, p) for n, p in enumerate(res.points, 1) if p.status in ("full", "half") and p.evidence]
+    if not matched:
+        return
+    probs = contradiction_probs([(p.evidence, p.text) for _, p in matched])
+    for (n, p), prob in zip(matched, probs):
+        p.contradiction = round(prob, 3)
+        if prob >= config.NLI_CONTRADICTION_THRESHOLD:
+            p.status, p.awarded = "missed", 0.0
+            res.flags.append(f'Point {n} may be contradicted by the answer ("{p.evidence[:60]}") '
+                             "- check the facts.")
+    res.suggested = min(round_half(sum(p.awarded for p in res.points)), res.max_marks)
 
 
 def _add_dnn_opinion(res: QuestionResult, q: Question, answer: str, scores: list[float]) -> None:

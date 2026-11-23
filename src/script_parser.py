@@ -18,7 +18,7 @@ from src.doc_reader import read_lines
 from src.labels import parse_label
 from src.schema_parser import Schema
 
-_NUMBER_ONLY_RE = re.compile(r"^\s*(?:(?i:q\w*|ans\w*)\s*[.\-:]?\s*)?(\d{1,2})\s*[.)\:]?\s*(.*)$")
+_NUMBER_ONLY_RE = re.compile(r"^\s*(?:(?i:q[a-z]*|ans[a-z]*)\s*[.\-:]?\s*)?(\d{1,2})\s*[.)\:]?\s*(.*)$")
 
 _NAME_RE = re.compile(r"^\s*(?:student\s*)?name\s*[:\-]\s*(.+)$", re.IGNORECASE)
 _ROLL_RE = re.compile(r"^\s*(?:roll|reg(?:istration)?|usn)\s*(?:no\.?|number)?\s*[:\-]\s*(\S+)", re.IGNORECASE)

@@ -32,6 +32,7 @@ def use_fake_embedder(monkeypatch):
     import config
     
     monkeypatch.setattr(config, "USE_DNN", False)   # tests must not depend on the trained model
+    monkeypatch.setattr(config, "USE_NLI", False)   # ... or download the NLI model
     monkeypatch.setattr(config, "SHOW_SUMMARIES", False)
     embedder.set_embedder(fake_embed)
     yield
@@ -196,3 +197,53 @@ def test_correct_label_is_not_switched():
     script = StudentScript("s.docx", answers={"4": "A food chain transfers energy."})
     r = grade_script(make_schema(), script)
     assert "4" in {q.label for q in r.questions}
+
+
+# ---------- NLI contradiction check ----------
+FULL_ANS = ("The current is directly proportional to the potential difference. "
+            "The relation is V = IR. The SI unit of resistance is the ohm.")
+
+
+def fake_nli_for(word):
+    """Fake NLI: any evidence sentence containing `word` contradicts its point."""
+    return lambda pairs: [0.95 if word in premise.lower() else 0.05 for premise, _ in pairs]
+
+
+@pytest.fixture
+def nli_on(monkeypatch):
+    import config
+    from src import nli
+    monkeypatch.setattr(config, "USE_NLI", True)
+    yield nli
+    nli.set_nli(None)
+
+
+def test_contradicted_point_loses_marks_and_is_flagged(nli_on):
+    nli_on.set_nli(fake_nli_for("ohm"))
+    r = grade_question(Q2, FULL_ANS)
+    p = r.points[2]
+    assert p.status == "missed" and p.awarded == 0 and p.contradiction == 0.95
+    assert "ohm" in p.evidence                      # evidence kept for the teacher
+    assert r.suggested == 2
+    assert any(f.startswith("Point 3 may be contradicted") for f in r.flags)
+
+
+def test_not_contradicted_points_keep_marks(nli_on):
+    nli_on.set_nli(fake_nli_for("ohm"))
+    r = grade_question(Q2, FULL_ANS)
+    assert [p.status for p in r.points[:2]] == ["full", "full"]
+    assert r.points[0].contradiction == 0.05
+    assert sum(1 for f in r.flags if "contradicted" in f) == 1
+
+
+def test_nli_off_changes_nothing(monkeypatch):
+    from src import nli
+    called = []
+    nli.set_nli(lambda pairs: called.append(pairs) or [1.0] * len(pairs))
+    try:
+        r = grade_question(Q2, FULL_ANS)                # USE_NLI is False in the fixture
+    finally:
+        nli.set_nli(None)
+    assert not called
+    assert r.suggested == 3 and all(p.contradiction == 0.0 for p in r.points)
+    assert not any("contradicted" in f for f in r.flags)

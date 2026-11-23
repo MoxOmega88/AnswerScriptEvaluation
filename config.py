@@ -40,6 +40,9 @@ USE_KEYWORD_BACKUP = True    # point score = max(semantic similarity, keyword co
 OR_SWITCH_MARGIN = 0.15     # answer labelled "Q4" but clearly about Q4-OR -> grade it as Q4-OR
 USE_DNN = True               # use the trained DNN as a second opinion (if models/score_dnn.keras exists)
 DISAGREEMENT_FLAG = 0.20     # |point-wise - DNN| (as fraction of max marks) -> flag
+USE_NLI = False               # NLI check: take away a point whose evidence contradicts it
+NLI_CONTRADICTION_THRESHOLD = 0.6   # P(contradiction) >= this -> point marked "missed" and flagged
+NLI_MODEL = "cross-encoder/nli-deberta-v3-xsmall"
 # ---------- Feedback (Phase 7, optional) ----------
 FEEDBACK_MODEL = "command-a-03-2025"   # Cohere chat model used through LangChain
 

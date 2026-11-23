@@ -18,6 +18,7 @@ from test_grader import fake_embed  # noqa: E402
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "USE_DNN", False)
+    monkeypatch.setattr(config, "USE_NLI", False)   # no NLI model download in tests
     monkeypatch.setattr(config, "SHOW_SUMMARIES", False)
     monkeypatch.setattr(config, "WARMUP_MODELS", False)
     monkeypatch.setattr(config, "UPLOAD_DIR", tmp_path / "uploads")

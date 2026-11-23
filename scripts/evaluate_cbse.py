@@ -4,8 +4,11 @@
 2. Tunes the thresholds on the tuning scripts only.
 3. Evaluates on the Science test scripts AND all Social Science scripts (a subject the
    thresholds never saw), comparing: cosine baseline, DNN, point-wise (default thresholds),
-   point-wise (tuned thresholds).
-4. Reports per-question and per-script agreement, and whether the flags point at the errors.
+   point-wise + NLI contradiction check (default thresholds), point-wise (tuned thresholds).
+   All columns except "pointwise_nli" are graded with the NLI check off, so the NLI effect is
+   a clean ablation.
+4. Reports per-question and per-script agreement, whether the flags point at the errors, and
+   how often each kind of flag fires.
 
 Expects:
     data/cbse/science/schema/*.docx          data/cbse/social_science/schema/*.docx
@@ -100,13 +103,26 @@ def _find(results: dict, label: str):
     same = [q for lab, q in results.items() if base_label(lab) == base_label(label) and q.counted]
     return same[0] if same else None
 
+def _grade(schema, script, thresholds, use_nli: bool):
+    """grade_script with the NLI contradiction check switched on or off for this call only."""
+    old = config.USE_NLI
+    config.USE_NLI = use_nli
+    try:
+        return grade_script(schema, script, *thresholds)
+    finally:
+        config.USE_NLI = old
+
+
 def grade_rows(subject, schema, scripts, marks, files, tuned):
     rows, totals = [], []
     default = (config.POINT_FULL_THRESHOLD, config.POINT_HALF_THRESHOLD)
     for fname in files:
         script = scripts[fname]
-        res_default = {q.label: q for q in grade_script(schema, script, *default).questions}
-        res_tuned_obj = grade_script(schema, script, *tuned)
+        res_default_obj = _grade(schema, script, default, use_nli=False)
+        res_nli_obj = _grade(schema, script, default, use_nli=True)
+        res_tuned_obj = _grade(schema, script, tuned, use_nli=False)
+        res_default = {q.label: q for q in res_default_obj.questions}
+        res_nli = {q.label: q for q in res_nli_obj.questions}
         res_tuned = {q.label: q for q in res_tuned_obj.questions}
 
         for (f, label), human in marks.items():
@@ -114,14 +130,17 @@ def grade_rows(subject, schema, scripts, marks, files, tuned):
                 continue
             qt = _find(res_tuned, label)
             qd = _find(res_default, label)
+            qn = _find(res_nli, label)
             if qt is None:
                 continue
             flagged = bool([fl for fl in qt.flags if fl != "Not answered."])
             rows.append({
                 "subject": subject, "file": fname, "question": label, "qtype": qt.qtype,
                 "method": qt.method, "max_marks": qt.max_marks, "human": human,
-                "pointwise_default": qd.suggested, "pointwise_tuned": qt.suggested,
+                "pointwise_default": qd.suggested, "pointwise_nli": qn.suggested,
+                "pointwise_tuned": qt.suggested,
                 "baseline": qt.baseline, "dnn": qt.dnn_marks, "flagged": flagged,
+                "flags_tuned": " | ".join(qt.flags), "flags_nli": " | ".join(qn.flags),
             })
 
         # Script totals: for an OR pair the better-marked option counts (as a teacher would)
@@ -131,7 +150,9 @@ def grade_rows(subject, schema, scripts, marks, files, tuned):
                 groups.setdefault(base_label(label), []).append(human)
         human_total = sum(max(v) for v in groups.values())
         totals.append({"subject": subject, "file": fname, "human_total": human_total,
-                       "system_total": res_tuned_obj.total_suggested, "max": res_tuned_obj.total_max})
+                       "system_total": res_tuned_obj.total_suggested,
+                       "system_total_default": res_default_obj.total_suggested,
+                       "system_total_nli": res_nli_obj.total_suggested, "max": res_tuned_obj.total_max})
     return rows, totals
 
 
@@ -140,6 +161,7 @@ def metrics_table(df: pd.DataFrame, title: str) -> list[dict]:
     out = []
     methods = [("baseline", "Cosine baseline"), ("dnn", "DNN"),
                ("pointwise_default", "Point-wise (default thresholds)"),
+               ("pointwise_nli", "Point-wise + NLI"),
                ("pointwise_tuned", "Point-wise (tuned thresholds)")]
     for col, name in methods:
         sub = df.dropna(subset=[col])
@@ -150,6 +172,22 @@ def metrics_table(df: pd.DataFrame, title: str) -> list[dict]:
         print(format_row(name, m) + f"  error {m['MAE_pct_of_max']:.0%} of max")
         out.append({"set": title, "method": name, **m})
     return out
+
+
+# ---------------------------------------------------------------- flag kinds
+FLAG_KINDS = ["Second opinion differs", "Very short answer", "No marking point matched",
+              "may be contradicted", "Labelled Q", "Both OR options answered", "Empty answer"]
+
+
+def flag_kind(flag: str) -> str:
+    """Group a flag message by its kind, e.g. all 'Labelled Q4 ...' flags -> 'Labelled Q'."""
+    return next((k for k in FLAG_KINDS if k in flag), "Other: " + flag[:40])
+
+
+def flag_kind_counts(flag_cells: pd.Series) -> pd.Series:
+    """Number of answers with at least one flag of each kind."""
+    kinds = flag_cells.fillna("").map(lambda cell: {flag_kind(f) for f in cell.split(" | ") if f})
+    return pd.Series([k for ks in kinds for k in ks], dtype=object).value_counts()
 
 
 # ---------------------------------------------------------------- main
@@ -211,9 +249,11 @@ if __name__ == "__main__":
 
     # 5. script totals
     print("\n=== Script totals (tuned thresholds) ===")
-    print(f"{'file':28} {'human':>6} {'system':>7} {'diff':>6}")
+    print(f"{'file':28} {'human':>6} {'system':>7} {'diff':>6}   {'default':>7} {'+NLI':>6} {'change':>6}")
     for row in tot.itertuples():
-        print(f"{row.file:28} {row.human_total:6g} {row.system_total:7g} {row.system_total - row.human_total:+6g}")
+        nli_change = row.system_total_nli - row.system_total_default
+        print(f"{row.file:28} {row.human_total:6g} {row.system_total:7g} {row.system_total - row.human_total:+6g}"
+              f"   {row.system_total_default:7g} {row.system_total_nli:6g} {nli_change:+6g}")
     diff = (tot["system_total"] - tot["human_total"]).abs()
     r_tot = np.corrcoef(tot["human_total"], tot["system_total"])[0, 1] if len(tot) > 2 else float("nan")
     print(f"Total-mark MAE {diff.mean():.2f} / 14, within 1 mark: {(diff <= 1).mean():.0%}, "
@@ -231,6 +271,14 @@ if __name__ == "__main__":
         print(f"Point-wise MAE on flagged answers: {err[f].mean():.3f} | on the rest: {err[~f].mean():.3f}")
     if big.any():
         print(f"Answers off by 1+ mark: {big.sum()}, of which flagged: {(big & f).sum()} ({(big & f).sum() / big.sum():.0%})")
+
+    print("\n=== Flag kinds (descriptive answers; an answer counts once per kind) ===")
+    kinds = pd.DataFrame({"tuned, NLI off": flag_kind_counts(desc["flags_tuned"]),
+                          "default + NLI": flag_kind_counts(desc["flags_nli"])}).fillna(0).astype(int)
+    kinds = kinds.sort_values("tuned, NLI off", ascending=False)
+    print(f"{'kind':32} {'tuned, NLI off':>15} {'default + NLI':>14}")
+    for kind, row in kinds.iterrows():
+        print(f"{kind:32} {row['tuned, NLI off']:15d} {row['default + NLI']:14d}")
 
     pd.DataFrame(summary).to_csv(REPORTS / "cbse_eval_summary.csv", index=False)
 

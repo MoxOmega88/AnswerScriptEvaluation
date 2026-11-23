@@ -347,6 +347,9 @@ def warm_up() -> None:
         from src import dnn
         if dnn.is_available():
             dnn._load()
+        if config.USE_NLI:
+            from src.nli import contradiction_probs
+            contradiction_probs([("warm up", "warm up")])
         print("[warm-up] models loaded")
     except Exception as err:  # never stop the server because of warm-up
         print(f"[warm-up] skipped: {err}")

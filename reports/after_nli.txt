@@ -1,0 +1,73 @@
+Science: 15 scripts -> tuning 5, testing 10
+  tuning scripts: student_01_ananya.docx, student_02_rahul.docx, student_05_sneha.docx, student_11_ishita.docx, student_12_harsh.docx
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|##########| 103/103 [00:00<00:00, 1182.69it/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1795286581.549323   22052 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1795286593.656886   22052 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+
+Tuned on 20 descriptive answers: full >= 0.55, half >= 0.5 (MAE 0.350)
+Default in config.py: full >= 0.65, half >= 0.5
+Loading weights:   0%|          | 0/202 [00:00<?, ?it/s]Loading weights:  25%|##5       | 51/202 [00:00<00:00, 447.70it/s]Loading weights:  88%|########7 | 177/202 [00:00<00:00, 897.49it/s]Loading weights: 100%|##########| 202/202 [00:00<00:00, 920.19it/s]
+
+=== Science TEST scripts, descriptive answers (39 answers) ===
+Cosine baseline                    MAE 0.744  RMSE 1.080  r 0.744  QWK 0.663  within0.5  64.1%  error 22% of max
+DNN                                MAE 0.731  RMSE 1.016  r 0.773  QWK 0.680  within0.5  66.7%  error 22% of max
+Point-wise (default thresholds)    MAE 0.551  RMSE 0.923  r 0.801  QWK 0.761  within0.5  69.2%  error 16% of max
+Point-wise + NLI                   MAE 0.551  RMSE 0.844  r 0.849  QWK 0.798  within0.5  59.0%  error 16% of max
+Point-wise (tuned thresholds)      MAE 0.615  RMSE 1.056  r 0.751  QWK 0.693  within0.5  61.5%  error 18% of max
+
+=== Social Science (unseen subject), descriptive answers (15 answers) ===
+Cosine baseline                    MAE 0.567  RMSE 0.904  r 0.864  QWK 0.787  within0.5  80.0%  error 21% of max
+DNN                                MAE 0.567  RMSE 0.885  r 0.857  QWK 0.851  within0.5  80.0%  error 21% of max
+Point-wise (default thresholds)    MAE 0.500  RMSE 0.785  r 0.912  QWK 0.866  within0.5  73.3%  error 16% of max
+Point-wise + NLI                   MAE 0.700  RMSE 1.008  r 0.865  QWK 0.784  within0.5  60.0%  error 20% of max
+Point-wise (tuned thresholds)      MAE 0.367  RMSE 0.671  r 0.934  QWK 0.881  within0.5  80.0%  error 13% of max
+
+=== ALL test answers, descriptive (54 answers) ===
+Cosine baseline                    MAE 0.694  RMSE 1.034  r 0.778  QWK 0.693  within0.5  68.5%  error 22% of max
+DNN                                MAE 0.685  RMSE 0.981  r 0.798  QWK 0.711  within0.5  70.4%  error 22% of max
+Point-wise (default thresholds)    MAE 0.537  RMSE 0.887  r 0.812  QWK 0.801  within0.5  70.4%  error 16% of max
+Point-wise + NLI                   MAE 0.593  RMSE 0.892  r 0.837  QWK 0.786  within0.5  59.3%  error 17% of max
+Point-wise (tuned thresholds)      MAE 0.546  RMSE 0.965  r 0.787  QWK 0.774  within0.5  66.7%  error 16% of max
+
+All question types incl. MCQ and skipped (70): MAE 0.421, within 0.5 mark 74%
+
+=== Script totals (tuned thresholds) ===
+file                          human  system   diff   default   +NLI change
+student_03_priya.docx            14      13     -1        13     13     +0
+student_04_arjun.docx            14      14     +0      11.5   10.5     -1
+student_06_faizan.docx            6    11.5   +5.5       8.5      8   -0.5
+student_07_kavya.docx            14      14     +0        14     14     +0
+student_08_rohan.docx           3.5       6   +2.5       4.5    4.5     +0
+student_09_divya.docx             4    11.5   +7.5        11      7     -4
+student_10_aditya.docx           14    11.5   -2.5        11     10     -1
+student_13_meera.pdf             14    13.5   -0.5      13.5     12   -1.5
+student_14_tanvi.docx             0     3.5   +3.5       2.5    1.5     -1
+student_15_luffy.docx          13.5    12.5     -1        12     10     -2
+student_21_aarav.docx            14    13.5   -0.5      13.5   12.5     -1
+student_22_pooja.docx          10.5       8   -2.5       6.5    5.5     -1
+student_23_kunal.docx             0     0.5   +0.5       0.5    0.5     +0
+student_24_nandini.docx        12.5    10.5     -2        10      9     -1
+Total-mark MAE 2.11 / 14, within 1 mark: 50%, within 2 marks: 57%, Pearson r 0.848
+
+=== Flags (descriptive answers) ===
+Flagged: 22 of 54 (41%)
+Point-wise MAE on flagged answers: 0.659 | on the rest: 0.469
+Answers off by 1+ mark: 18, of which flagged: 9 (50%)
+
+=== Flag kinds (descriptive answers; an answer counts once per kind) ===
+kind                              tuned, NLI off  default + NLI
+Second opinion differs                        19             28
+No marking point matched                       4              4
+Very short answer                              2              2
+Labelled Q                                     1              1
+may be contradicted                            0             14
+
+Saved reports/cbse_eval_answers.csv, cbse_eval_totals.csv, cbse_eval_summary.csv and reports/figures/cbse_totals_scatter.png
+
+To use the tuned thresholds in the app, set in config.py:
+  POINT_FULL_THRESHOLD = 0.55
+  POINT_HALF_THRESHOLD = 0.50

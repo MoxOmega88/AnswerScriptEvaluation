@@ -155,3 +155,21 @@ def test_question_labels_are_never_removed():
     pages = [["Q3.", "answer three", "end"], ["Q4.", "answer four", "end"]]
     out = remove_headers_footers(pages)
     assert "Q3." in out and "Q4." in out
+
+
+
+
+def test_two_digit_question_with_sub_part_text(tmp_path):
+    """'Q15. (a) ...' must be Q15 (not Q5) when the schema has no 15a."""
+    f = tmp_path / "s.txt"
+    f.write_text("Q14 [3 marks]\nQuestion: A\nModel answer: B\nPoints:\n- B (3)\n\n"
+                 "Q15 [3 marks] [type: manual]\nQuestion: C\n\n"
+                 "Q5 [1 mark] [type: mcq]\nQuestion: D\nAnswer: (a)\n", encoding="utf-8")
+    from src.schema_parser import parse_schema
+    from src.script_parser import parse_script
+    schema = parse_schema(f)
+    g = tmp_path / "a.txt"
+    g.write_text("Q5. (a)\nQ14. Something.\nQ15. (a) R = 10 ohm\n(b) I = 1 A\n", encoding="utf-8")
+    s = parse_script(g, schema)
+    assert s.answers["15"].startswith("(a) R = 10 ohm") and "(b) I = 1 A" in s.answers["15"]
+    assert s.answers["14"] == "Something."
