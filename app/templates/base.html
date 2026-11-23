@@ -4,20 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Answer Script Evaluation{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 17l7 7L27 8' fill='none' stroke='%23b8312a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body {% block body_attrs %}{% endblock %}>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="topbar">
-    <a class="brand" href="/">
-      <span class="brand-mark" aria-hidden="true">✓</span>
-      Answer Script Evaluation
-    </a>
-    <span class="topbar-note">AI suggests in pencil. You decide in ink.</span>
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">✓</span>
+        <span>Answer Script Evaluation</span>
+      </a>
+      <p class="topbar-note">
+        <span class="pencil">AI suggests in pencil.</span>
+        <span class="ink-note">You decide in ink.</span>
+      </p>
+    </div>
   </header>
-  <main class="page">
+  <main class="page" id="main">
     {% block content %}{% endblock %}
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

@@ -2,51 +2,86 @@
 {% block title %}{{ exam.title }} | Answer Script Evaluation{% endblock %}
 {% block body_attrs %}data-busy="{{ 1 if busy else 0 }}"{% endblock %}
 {% block content %}
-<nav class="crumbs"><a href="/">All exams</a></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">All exams</a></nav>
 
-<section class="exam-head">
+<section class="page-head">
   <div>
     <h1>{{ exam.title }}</h1>
-    <p class="muted">{{ exam.total_marks|marks }} marks, {{ exam.questions|length }} questions, schema from {{ exam.schema_file }}</p>
+    <p class="muted">{{ exam.total_marks|marks }} marks · {{ exam.questions|length }} questions · schema from {{ exam.schema_file }}</p>
   </div>
   <div class="actions">
     <a class="btn" href="/api/exams/{{ exam.id }}/export.csv">Download marks (CSV)</a>
     <a class="btn" href="/api/exams/{{ exam.id }}/feedback.csv">Download feedback (CSV)</a>
-    <button class="btn btn-quiet" data-delete-exam="{{ exam.id }}">Delete exam</button>
+    <button class="btn btn-quiet btn-danger" data-delete-exam="{{ exam.id }}">Delete exam</button>
   </div>
 </section>
 
+<dl class="stats" data-stats data-total="{{ exam.total_marks }}">
+  <div class="stat">
+    <dt>Scripts uploaded</dt>
+    <dd data-stat="uploaded">{{ stats.uploaded }}</dd>
+  </div>
+  <div class="stat">
+    <dt>Graded</dt>
+    <dd data-stat="graded">{{ stats.graded }}</dd>
+  </div>
+  <div class="stat stat-attention{% if stats.attention %} has-value{% endif %}">
+    <dt>Need attention</dt>
+    <dd data-stat="attention">{{ stats.attention }}</dd>
+  </div>
+  <div class="stat">
+    <dt>Finalised</dt>
+    <dd data-stat="finalised">{{ stats.finalised }}</dd>
+  </div>
+  <div class="stat stat-average">
+    <dt>Class average <span class="hint">AI suggestion</span></dt>
+    <dd><span class="pencil" data-stat="average">{{ stats.average|marks }}</span><span class="of"> / {{ exam.total_marks|marks }}</span></dd>
+  </div>
+</dl>
+
 {% if exam.warnings %}
-<div class="notice">
+<div class="notice" role="note">
   <p><strong>Check the schema.</strong> These may affect grading:</p>
   <ul>{% for w in exam.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 
-<section class="sheet upload">
+<section class="sheet upload" aria-labelledby="upload-title">
+  <h2 id="upload-title" class="section-title">Add answer scripts</h2>
   <form id="upload-form" data-exam="{{ exam.id }}" class="upload-form">
     <label class="dropzone">
       <input type="file" name="files" accept=".docx,.pdf,.txt" multiple required>
-      <span class="dropzone-text"><strong>Choose answer scripts</strong> or drop them here.
-      Select as many as you like; each file is one student.</span>
-      <span class="dropzone-files" data-file-list></span>
+      <span class="dropzone-text">
+        <span class="dropzone-idle"><strong>Choose answer scripts</strong> or drop them here</span>
+        <span class="dropzone-over"><strong>Drop the files to add them</strong></span>
+        <span class="hint">.docx, .pdf or .txt · each file is one student · select as many as you like</span>
+      </span>
     </label>
-    <button class="btn btn-primary" type="submit">Upload and grade</button>
+    <div class="upload-side">
+      <button class="btn btn-primary" type="submit">Upload and grade</button>
+      <span class="busy-msg" data-busy-msg role="status" aria-live="polite"></span>
+    </div>
+    <div class="file-list" data-file-list hidden>
+      <p class="file-list-head" data-file-count></p>
+      <ul></ul>
+    </div>
   </form>
-  <p class="form-error" data-error hidden></p>
+  <p class="form-error" data-error role="alert" hidden></p>
 </section>
 
-<section>
-  <div class="register-head">
-    <h2>Scripts</h2>
-    {% if busy %}<span class="chip chip-busy">Grading in progress, this page updates by itself</span>{% endif %}
+<section class="scripts" aria-labelledby="scripts-title">
+  <div class="section-head">
+    <h2 id="scripts-title">Scripts</h2>
+    <div class="progress" data-progress role="status" aria-live="polite" {% if not busy %}hidden{% endif %}>
+      <span class="progress-text"><span class="spinner" aria-hidden="true"></span><span data-progress-text>Grading 1 of {{ stats.busy }} script{{ '' if stats.busy == 1 else 's' }}…</span></span>
+      <span class="bar bar-wide" aria-hidden="true"><span data-progress-bar style="width: 0%"></span></span>
+    </div>
   </div>
 
-  {% if exam.submissions %}
-  <table class="register">
+  <table class="register" data-register {% if not exam.submissions %}hidden{% endif %}>
     <thead>
       <tr>
-        <th scope="col">Roll no.</th>
+        <th scope="col" class="roll">Roll no.</th>
         <th scope="col">Student</th>
         <th scope="col">Status</th>
         <th scope="col" class="num">Suggested</th>
@@ -56,43 +91,44 @@
     </thead>
     <tbody>
       {% for s in exam.submissions %}
-      <tr class="status-{{ s.status }}">
-        <td class="roll">{{ s.roll_no or '–' }}</td>
-        <td>
+      <tr class="status-{{ s.status }}" data-row="{{ s.id }}">
+        <td class="roll" data-label="Roll no.">{{ s.roll_no or '–' }}</td>
+        <td class="student" data-label="Student">
           {% if s.status in ('evaluated', 'finalized') %}
             <a href="/submissions/{{ s.id }}">{{ s.student_name or s.file_name }}</a>
           {% else %}
-            {{ s.student_name or s.file_name }}
+            <span data-name>{{ s.student_name or s.file_name }}</span>
           {% endif %}
           <span class="file">{{ s.file_name }}</span>
         </td>
-        <td><span class="chip chip-{{ s.status }}">{{ STATUS_TEXT[s.status] }}</span></td>
-        <td class="num pencil">{{ s.total_suggested|marks }}</td>
-        <td class="num">{% if s.total_final is not none %}<span class="ink">{{ s.total_final|marks }}</span>{% else %}–{% endif %}<span class="of"> / {{ (s.total_max or exam.total_marks)|marks }}</span></td>
-        <td><div class="attention-wrap">
-          {% if s.status == 'error' %}<span class="err">{{ s.error }}</span>
+        <td data-label="Status" data-cell="status">
+          <span class="chip chip-{{ s.status }}">{% if s.status in ('pending', 'processing') %}<span class="spinner" aria-hidden="true"></span>{% endif %}{{ STATUS_TEXT[s.status] }}</span>
+        </td>
+        <td class="num" data-label="Suggested" data-cell="suggested"><span class="pencil">{{ s.total_suggested|marks }}</span></td>
+        <td class="num" data-label="Final" data-cell="final">{% if s.total_final is not none %}<span class="ink">{{ s.total_final|marks }}</span>{% else %}<span class="muted">–</span>{% endif %}<span class="of"> / {{ (s.total_max or exam.total_marks)|marks }}</span></td>
+        <td data-label="Needs attention" data-cell="attention"><div class="attention">
+          {% if s.status == 'error' %}<span class="err">{{ s.error or 'Could not grade this script.' }}</span>
           {% elif s.n_flagged %}<span class="chip chip-flag">{{ s.n_flagged }} answer{{ '' if s.n_flagged == 1 else 's' }} flagged</span>
           {% endif %}
-          {% if s.manual_marks %}<span class="chip">{{ s.manual_marks|marks }} marks to mark by hand</span>{% endif %}
+          {% if s.manual_marks %}<span class="chip chip-manual">{{ s.manual_marks|marks }} marks to mark by hand</span>{% endif %}
         </div></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted small">Scripts with errors and flagged answers are listed first. Finalised scripts are at the bottom.</p>
-  {% else %}
-  <div class="empty">
+  <p class="muted small table-note" {% if not exam.submissions %}hidden{% endif %} data-register-note>Scripts with errors and flagged answers are listed first. Finalised scripts are at the bottom.</p>
+
+  <div class="empty" data-empty {% if exam.submissions %}hidden{% endif %}>
     <p class="empty-title">No scripts yet</p>
     <p>Upload your students' answer scripts above. Grading starts straight away and takes a few seconds per script.</p>
   </div>
-  {% endif %}
 </section>
 
 <details class="sheet questions">
   <summary>Questions and marking scheme</summary>
   {% for q in exam.questions %}
   <div class="q-summary">
-    <p><strong>Q{{ q.label }}</strong> <span class="muted">{{ q.max_marks|marks }} mark{{ '' if q.max_marks == 1 else 's' }}, {{ q.qtype }}</span></p>
+    <p class="q-summary-head"><strong>Q{{ q.label }}</strong> <span class="muted">{{ q.max_marks|marks }} mark{{ '' if q.max_marks == 1 else 's' }} · {{ q.qtype }}</span></p>
     <p>{{ q.text }}</p>
     {% if q.points %}<ul>{% for p in q.points %}<li>{{ p.text }} <span class="muted">({{ p.marks|marks }})</span></li>{% endfor %}</ul>{% endif %}
     {% if q.answer_key %}<p class="muted">Answer key: {{ q.answer_key }}</p>{% endif %}

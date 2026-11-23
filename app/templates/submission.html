@@ -2,7 +2,7 @@
 {% block title %}{{ sub.student_name or sub.file_name }} | {{ sub.exam_title }}{% endblock %}
 {% block content %}
 {% set locked = sub.status == 'finalized' %}
-<nav class="crumbs">
+<nav class="crumbs" aria-label="Breadcrumb">
   <a href="/exams/{{ sub.exam_id }}">{{ sub.exam_title }}</a>
   <span class="crumb-pager">
     {% if prev_id %}<a href="/submissions/{{ prev_id }}">Previous script</a>{% endif %}
@@ -12,60 +12,94 @@
 </nav>
 
 <section class="student-head" data-sub="{{ sub.id }}">
-  <div>
+  <div class="student-id">
     <h1>{{ sub.student_name or 'Unnamed student' }}</h1>
-    <p class="muted">Roll no. {{ sub.roll_no or 'not found' }}, {{ sub.file_name }}</p>
+    <p class="muted">Roll no. {{ sub.roll_no or 'not found' }} · {{ sub.file_name }}</p>
   </div>
-  <div class="totals">
-    <div class="total">
-      <span class="total-label">AI suggestion</span>
-      <span class="pencil big">{{ sub.total_suggested|marks }}</span>
+  <dl class="scorebox" aria-label="Marks">
+    <div class="score">
+      <dt>AI suggestion</dt>
+      <dd class="pencil">{{ sub.total_suggested|marks }}</dd>
     </div>
-    <div class="total">
-      <span class="total-label">{{ 'Final' if locked else 'Your marks so far' }}</span>
-      <span class="ink big" data-final-total>{{ (sub.total_final if locked else final_so_far)|marks }}</span>
+    <div class="score score-ink">
+      <dt>{{ 'Final' if locked else 'Your marks so far' }}</dt>
+      <dd class="ink" data-final-total>{{ (sub.total_final if locked else final_so_far)|marks }}</dd>
     </div>
-    <div class="total">
-      <span class="total-label">Out of</span>
-      <span class="big plain">{{ sub.total_max|marks }}</span>
+    <div class="score">
+      <dt>Out of</dt>
+      <dd class="plain">{{ sub.total_max|marks }}</dd>
     </div>
-  </div>
+  </dl>
 </section>
 
-<section class="review-bar">
-  {% if locked %}
-    <span class="chip chip-finalized">Finalised</span>
-    <span class="muted">Marks are locked. Reopen the script to change them.</span>
-    <button class="btn" data-action="reopen">Reopen script</button>
-  {% else %}
-    <span class="muted"><strong data-reviewed>{{ reviewed }}</strong> of {{ n_counted }} answers have a final mark.</span>
-    <button class="btn" data-action="accept-all">Accept remaining suggestions</button>
-    <button class="btn" data-action="feedback" title="Uses the Cohere API through LangChain">Write feedback with AI</button>
-    <button class="btn btn-primary" data-action="finalize">Finalise script</button>
-    <button class="btn btn-quiet" data-action="reevaluate">Grade again</button>
-  {% endif %}
-  <p class="form-error" data-error hidden></p>
-</section>
+<div class="review-sticky" data-sticky>
+  <section class="review-bar" aria-label="Script actions">
+    <div class="review-bar-row">
+      {% if locked %}
+        <span class="chip chip-finalized">Finalised</span>
+        <span class="muted">Marks are locked. Reopen the script to change them.</span>
+        <span class="spacer"></span>
+        <button class="btn" data-action="reopen" data-msg="Reopening the script…">Reopen script</button>
+      {% else %}
+        <span class="review-count"><strong data-reviewed>{{ reviewed }}</strong> of {{ n_counted }} answers have a final mark</span>
+        <span class="spacer"></span>
+        <button class="btn btn-quiet" data-action="reevaluate" data-msg="Grading this script again…">Grade again</button>
+        <button class="btn" data-action="feedback" data-count="{{ n_feedback }}" title="Uses the Cohere API through LangChain">Write feedback with AI</button>
+        <button class="btn" data-action="accept-all" data-msg="Accepting the remaining suggestions…">Accept remaining suggestions</button>
+        <button class="btn btn-primary" data-action="finalize" data-msg="Finalising…">Finalise script</button>
+      {% endif %}
+    </div>
+    <p class="busy-msg busy-line" data-busy-msg role="status" aria-live="polite"></p>
+    <p class="form-error" data-error role="alert" hidden></p>
+  </section>
+
+  <nav class="qnav" aria-label="Jump to a question">
+    <ol>
+      {% for a in sub.answers %}
+      {% set st = a.state %}
+      <li><a href="#q{{ a.label }}" data-nav="{{ a.id }}"
+             class="qchip{% if st.saved %} is-saved{% endif %}{% if st.flagged %} is-flagged{% endif %}{% if st.missing %} is-missing{% endif %}{% if not st.counted %} is-uncounted{% endif %}"
+             title="{% if st.saved %}Final mark saved{% elif st.missing %}Not answered{% else %}No final mark yet{% endif %}{% if st.flagged %}, flagged{% endif %}">
+        <span class="qchip-label">Q{{ a.label }}</span>
+        <span class="qchip-mark" data-nav-mark>{{ a.final_marks|marks if st.saved else '' }}</span>
+      </a></li>
+      {% endfor %}
+    </ol>
+    <p class="qnav-key" aria-hidden="true">
+      <span class="key key-saved">mark saved</span>
+      <span class="key key-flagged">flagged</span>
+      <span class="key key-missing">not answered</span>
+    </p>
+  </nav>
+</div>
 
 {% if sub.warnings %}
-<div class="notice">
+<div class="notice" role="note">
   <ul>{% for w in sub.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 
 {% for a in sub.answers %}
-<article class="answer{% if not a.counted %} not-counted{% endif %}{% if a.flags and a.method not in ('missing',) %} flagged{% endif %}" id="q{{ a.label }}">
+{% set st = a.state %}
+<article class="answer{% if not st.counted %} not-counted{% endif %}{% if st.flagged %} flagged{% endif %}" id="q{{ a.label }}" aria-labelledby="qlabel-{{ a.id }}">
   <div class="margin">
-    <span class="q-label">Q{{ a.label }}</span>
-    <span class="ink-mark{% if a.final_marks is none %} empty{% endif %}" data-ink="{{ a.id }}">{{ a.final_marks|marks if a.final_marks is not none else '' }}</span>
-    <span class="pencil small-mark" title="AI suggestion">{{ a.suggested|marks }}<span class="of">/{{ a.max_marks|marks }}</span></span>
+    <span class="q-label" id="qlabel-{{ a.id }}">Q{{ a.label }}</span>
+    <span class="ink-mark{% if a.final_marks is none %} empty{% endif %}" data-ink="{{ a.id }}" aria-label="Final mark">{{ a.final_marks|marks if a.final_marks is not none else '' }}</span>
+    <span class="small-mark" title="AI suggestion"><span class="pencil">{{ a.suggested|marks }}</span><span class="of">/{{ a.max_marks|marks }}</span></span>
   </div>
 
   <div class="sheet-body">
     <p class="question">{{ a.question_text }}</p>
-    {% if not a.counted %}<p class="muted">Not counted: the student also answered the other option, which scored higher.</p>{% endif %}
+    {% if not st.counted %}<p class="not-counted-note">Not counted: the student also answered the other option, which scored higher.</p>{% endif %}
 
-    {% if a.method == 'missing' %}
+    {% if st.flagged %}
+    <div class="flags" role="note">
+      <p class="flags-title">Check this answer</p>
+      <ul>{% for f in a.flags %}<li>{{ f }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if st.missing %}
       <p class="ruled missing-text">Not answered.</p>
     {% else %}
       <div class="ruled student-answer">
@@ -76,54 +110,57 @@
             <span>{{ seg.text }}</span>
           {%- endif %} {% endfor -%}
       </div>
-      {% if a.summary %}<p class="summary"><span class="muted">Summary:</span> {{ a.summary }}</p>{% endif %}
-    {% endif %}
-
-    {% if a.flags and a.method != 'missing' %}
-    <ul class="flags">{% for f in a.flags %}<li>{{ f }}</li>{% endfor %}</ul>
+      {% if a.summary %}<p class="summary"><span class="summary-label">Summary</span> {{ a.summary }}</p>{% endif %}
     {% endif %}
   </div>
 
-  <aside class="side">
+  <aside class="side" aria-label="Marking for Q{{ a.label }}">
     {% if a.points %}
-    <ol class="points">
-      {% for p in a.points %}
-      <li class="pt pt-{{ p.status }}">
-        <span class="pt-icon" aria-label="{{ p.status }}">{% if p.status == 'full' %}✓{% elif p.status == 'half' %}½{% else %}✗{% endif %}</span>
-        <span class="pt-text">{{ p.text }}</span>
-        <span class="pt-marks">{{ p.awarded|marks }}/{{ p.max_marks|marks }}</span>
-      </li>
-      {% endfor %}
-    </ol>
+    <div class="points-block">
+      <p class="side-title">Marking points <span class="pencil">{{ a.points|sum(attribute='awarded')|marks }}/{{ a.points|sum(attribute='max_marks')|marks }}</span></p>
+      <ol class="points">
+        {% for p in a.points %}
+        <li class="pt pt-{{ p.status }}">
+          <span class="pt-icon" aria-hidden="true">{% if p.status == 'full' %}✓{% elif p.status == 'half' %}½{% else %}✗{% endif %}</span>
+          <span class="pt-text"><span class="visually-hidden">{{ {'full': 'Full marks:', 'half': 'Half marks:', 'missed': 'Missed:'}[p.status] }} </span>{{ p.text }}</span>
+          <span class="pt-marks">{{ p.awarded|marks }}/{{ p.max_marks|marks }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
     {% elif a.qtype == 'mcq' %}
-      <p class="muted">Multiple choice, checked against the answer key.</p>
+      <p class="side-note">Multiple choice, checked against the answer key.</p>
     {% elif a.qtype == 'manual' %}
-      <p class="muted">Marked by the teacher only.</p>
+      <p class="side-note">Marked by the teacher only.</p>
     {% endif %}
 
     {% if a.dnn_marks is not none or a.baseline is not none %}
-    <p class="second-opinion muted">
-      {% if a.dnn_marks is not none %}Second opinion (DNN): {{ a.dnn_marks|marks }}{% endif %}
-      {% if a.baseline is not none %}<br>Similarity to model answer: {{ (a.similarity * 100)|round|int }}%{% endif %}
+    <p class="second-opinion">
+      {% if a.dnn_marks is not none %}<span>Second opinion (DNN): <strong>{{ a.dnn_marks|marks }}</strong></span>{% endif %}
+      {% if a.baseline is not none %}<span>Similarity to model answer: <strong>{{ (a.similarity * 100)|round|int }}%</strong></span>{% endif %}
     </p>
     {% endif %}
 
     <form class="mark-form" data-answer="{{ a.id }}" data-suggested="{{ a.suggested if a.suggested is not none else '' }}">
-      <label class="field inline">
-        <span>Final mark</span>
-        <input type="number" name="final_marks" min="0" max="{{ a.max_marks }}" step="0.5"
-               value="{{ a.final_marks|marks if a.final_marks is not none else '' }}" {% if locked %}disabled{% endif %}>
-        <span class="muted">/ {{ a.max_marks|marks }}</span>
-      </label>
+      <div class="mark-row">
+        <label class="mark-field">
+          <span class="field-label">Final mark</span>
+          <span class="mark-input">
+            <input type="number" name="final_marks" min="0" max="{{ a.max_marks }}" step="0.5"
+                   value="{{ a.final_marks|marks if a.final_marks is not none else '' }}" {% if locked %}disabled{% endif %}>
+            <span class="of">/ {{ a.max_marks|marks }}</span>
+          </span>
+        </label>
+        {% if not locked and a.suggested is not none %}<button class="btn btn-small" type="button" data-use-suggestion>Use {{ a.suggested|marks }}</button>{% endif %}
+      </div>
       <label class="field">
-        <span>Feedback for the student <em class="muted">(drafted automatically, edit as needed)</em></span>
-        <textarea name="teacher_comment" rows="5" {% if locked %}disabled{% endif %}>{{ a.teacher_comment }}</textarea>
+        <span class="field-label">Feedback for the student <span class="hint">drafted automatically, edit as needed</span></span>
+        <textarea name="teacher_comment" rows="4" {% if locked %}disabled{% endif %}>{{ a.teacher_comment }}</textarea>
       </label>
       {% if not locked %}
       <div class="row">
         <button class="btn btn-primary btn-small" type="submit">Save mark</button>
-        {% if a.suggested is not none %}<button class="btn btn-small" type="button" data-use-suggestion>Use {{ a.suggested|marks }}</button>{% endif %}
-        <span class="saved muted" data-saved></span>
+        <span class="saved" data-saved role="status" aria-live="polite"></span>
       </div>
       {% endif %}
     </form>
@@ -131,8 +168,8 @@
 </article>
 {% endfor %}
 
-<section class="review-bar bottom">
-  {% if next_id %}<a class="btn" href="/submissions/{{ next_id }}">Next script</a>{% endif %}
+<section class="review-bar bottom" aria-label="Navigation">
   <a class="btn btn-quiet" href="/exams/{{ sub.exam_id }}">Back to all scripts</a>
+  {% if next_id %}<a class="btn" href="/submissions/{{ next_id }}">Next script</a>{% endif %}
 </section>
 {% endblock %}

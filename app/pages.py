@@ -51,6 +51,37 @@ def highlight_segments(answer: str, points: list[dict]) -> list[dict]:
     return segments
 
 
+def exam_stats(exam: dict) -> dict:
+    """Numbers for the summary strip at the top of the exam page."""
+    subs = exam["submissions"]
+    graded = [s for s in subs if s["status"] in ("evaluated", "finalized")]
+    suggested = [s["total_suggested"] for s in graded if s["total_suggested"] is not None]
+    return {
+        "uploaded": len(subs),
+        "graded": len(graded),
+        "busy": sum(s["status"] in ("pending", "processing") for s in subs),
+        "attention": sum(s["status"] == "error" or (s["status"] == "evaluated" and s["n_flagged"] > 0)
+                         for s in subs),
+        "finalised": sum(s["status"] == "finalized" for s in subs),
+        "average": round(sum(suggested) / len(suggested), 1) if suggested else None,
+    }
+
+
+def answer_state(a: dict) -> dict:
+    """What the question navigator and the answer card need to know about one answer."""
+    return {
+        "saved": a["final_marks"] is not None,
+        "flagged": bool(a["flags"]) and a["method"] != "missing",
+        "missing": a["method"] == "missing",
+        "counted": a["counted"],
+    }
+
+
+def needs_feedback(a: dict) -> bool:
+    """Answers the AI feedback button writes for (same rule as services.generate_feedback)."""
+    return a["counted"] and a["method"] == "pointwise" and any(p["status"] != "full" for p in a["points"])
+
+
 @router.get("/")
 def exams_page(request: Request, db: Session = Depends(get_db)):
     exams = [services.exam_summary(e) for e in db.scalars(select(Exam).order_by(Exam.id.desc())).all()]
@@ -60,8 +91,9 @@ def exams_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/exams/{exam_id}")
 def exam_page(exam_id: int, request: Request, db: Session = Depends(get_db)):
     exam = services.exam_detail(_get(db, Exam, exam_id))
-    busy = any(s["status"] in ("pending", "processing") for s in exam["submissions"])
-    return templates.TemplateResponse(request, "exam.html", {"exam": exam, "busy": busy})
+    stats = exam_stats(exam)
+    return templates.TemplateResponse(request, "exam.html",
+                                      {"exam": exam, "stats": stats, "busy": stats["busy"] > 0})
 
 
 @router.get("/submissions/{sub_id}")
@@ -70,6 +102,7 @@ def submission_page(sub_id: int, request: Request, db: Session = Depends(get_db)
     detail = services.submission_detail(sub)
     for a in detail["answers"]:
         a["segments"] = highlight_segments(a["answer_text"], a["points"])
+        a["state"] = answer_state(a)
 
     counted = [a for a in detail["answers"] if a["counted"]]
     reviewed = sum(a["final_marks"] is not None for a in counted)
@@ -84,4 +117,5 @@ def submission_page(sub_id: int, request: Request, db: Session = Depends(get_db)
         "sub": detail, "reviewed": reviewed, "n_counted": len(counted),
         "final_so_far": final_so_far, "prev_id": prev_id, "next_id": next_id,
         "position": pos + 1, "n_scripts": len(order),
+        "n_feedback": sum(needs_feedback(a) for a in detail["answers"]),
     })

@@ -8,19 +8,22 @@
 </section>
 
 <div class="two-col">
-  <section class="sheet">
-    <h2>New exam</h2>
+  <section class="sheet new-exam" aria-labelledby="new-exam-title">
+    <h2 id="new-exam-title">New exam</h2>
     <form id="new-exam-form" class="stack">
       <label class="field">
-        <span>Answer schema (.docx, .pdf or .txt)</span>
+        <span class="field-label">Answer schema <span class="hint">.docx, .pdf or .txt</span></span>
         <input type="file" name="file" accept=".docx,.pdf,.txt" required>
       </label>
       <label class="field">
-        <span>Exam title <em class="muted">(optional, taken from the schema if empty)</em></span>
+        <span class="field-label">Exam title <span class="hint">optional, taken from the schema if empty</span></span>
         <input type="text" name="title" placeholder="Class 10 Science, Unit Test 2">
       </label>
-      <button class="btn btn-primary" type="submit">Create exam</button>
-      <p class="form-error" data-error hidden></p>
+      <div class="row">
+        <button class="btn btn-primary" type="submit">Create exam</button>
+        <span class="busy-msg" data-busy-msg role="status" aria-live="polite"></span>
+      </div>
+      <p class="form-error" data-error role="alert" hidden></p>
     </form>
     <details class="help">
       <summary>How should the schema be written?</summary>
@@ -41,19 +44,19 @@ Answer: (b)</pre>
     </details>
   </section>
 
-  <section class="exam-list">
+  <section class="exam-list" aria-label="Exams">
     {% if exams %}
       {% for e in exams %}
       <a class="exam-row" href="/exams/{{ e.id }}">
         <span class="exam-title">{{ e.title }}</span>
-        <span class="exam-meta">{{ e.total_marks|marks }} marks, {{ e.n_submissions }} script{{ '' if e.n_submissions == 1 else 's' }}</span>
+        <span class="exam-meta">{{ e.total_marks|marks }} marks · {{ e.n_submissions }} script{{ '' if e.n_submissions == 1 else 's' }}</span>
         <span class="exam-progress">
           {% if e.n_submissions %}
-            <span class="bar"><span style="width: {{ (100 * e.n_finalized / e.n_submissions)|round }}%"></span></span>
-            {{ e.n_finalized }} of {{ e.n_submissions }} finalised
+            <span class="bar" aria-hidden="true"><span style="width: {{ (100 * e.n_finalized / e.n_submissions)|round }}%"></span></span>
+            <span>{{ e.n_finalized }} of {{ e.n_submissions }} finalised</span>
             {% if e.n_flagged_scripts %}<span class="chip chip-flag">{{ e.n_flagged_scripts }} to check</span>{% endif %}
           {% else %}
-            No scripts yet
+            <span>No scripts yet</span>
           {% endif %}
         </span>
       </a>
